@@ -1,3 +1,4 @@
+mod disassembly;
 mod opcode;
 
 use std::fs;
@@ -5,37 +6,28 @@ use std::io::Read;
 use std::path::Path;
 
 fn main() {
-    let mut bootstrap_rom_file =
-        fs::File::open(Path::new("./roms/bootstrap.gb")).expect("Can't open bootstrap ROM");
-    let mut bootstrap_rom = Vec::new();
-    bootstrap_rom_file
-        .read_to_end(&mut bootstrap_rom)
-        .expect("Error reading bootstrap ROM");
-    let program_length = bootstrap_rom.len();
-    let mut pc = 0;
-    let mut prefixed = false;
-    while pc < program_length {
-        print!("{:04x}", pc);
-        let byte = bootstrap_rom[pc];
-        let opcode = if prefixed {
-            prefixed = false;
-            opcode::decode_prefixed(byte)
-        } else {
-            opcode::decode(byte)
-        };
+    let bootstrap_rom = open_rom(Path::new("./roms/bootstrap.gb"));
+    disassemble(bootstrap_rom);
+}
 
-        match opcode {
-            Some(i) => {
-                print!("    {}", i.mnemonic);
-                pc += i.size_bytes as usize;
-                if i.mnemonic == "PREFIX" {
-                    prefixed = true;
-                }
+fn open_rom(rom_path: &Path) -> ROM {
+    let mut rom_file = fs::File::open(rom_path).expect("ROM path should be valid");
+    let mut rom = Vec::new();
+    rom_file
+        .read_to_end(&mut rom)
+        .expect("reading ROM into buffer should not fail");
+
+    rom
+}
+
+fn disassemble(r: ROM) {
+    for instruction in disassembly::disassemble(&r).iter() {
+        print!("{:04x}    ", instruction.address);
+        match &instruction.opcode {
+            Some(opcode) => {
+                print!("{}", opcode.mnemonic);
             }
-            None => {
-                print!("    UNKNOWN({:04x})", &bootstrap_rom[pc]);
-                pc += 1;
-            }
+            None => print!("UNKNOWN"),
         }
         print!("\n");
     }
