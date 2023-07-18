@@ -18,7 +18,7 @@ fn main() {
     disassemble(&bootstrap_rom);
 
     let cpu = &mut Cpu::init();
-    let memory: &mut Memory = &mut [0; 0xFFFF];
+    let memory = &mut Memory::init();
     map_rom_into_memory(&bootstrap_rom, memory);
 
     let mut executing = true;
@@ -26,7 +26,7 @@ fn main() {
     while executing {
         println!("{:?}", cpu);
         let pc = cpu.read_register_wide(RegisterWide::PC);
-        let byte = memory[usize::from(pc)];
+        let byte = memory.read(pc);
         let opcode = if prefixed {
             prefixed = false;
             opcode::decode_prefixed(byte)
@@ -47,7 +47,7 @@ fn main() {
 
 fn map_rom_into_memory(rom: &ROM, memory: &mut Memory) {
     for i in 0..rom.len() {
-        memory[i] = rom[i];
+        memory.write(i as u16, rom[i] as u8);
     }
 }
 

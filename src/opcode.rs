@@ -191,7 +191,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             size_bytes: 3,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
                 let pc = cpu.read_register_wide(RegisterWide::PC);
-                let (lsb, msb) = (memory[usize::from(pc) + 1], memory[usize::from(pc) + 2]);
+                let (lsb, msb) = (memory.read(pc + 1), memory.read(pc + 2));
                 cpu.write_register_wide(RegisterWide::HL, util::u8_to_u16(msb, lsb));
             }),
         }),
@@ -275,14 +275,18 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             size_bytes: 3,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
                 let pc = cpu.read_register_wide(RegisterWide::PC);
-                let (lsb, msb) = (memory[usize::from(pc) + 1], memory[usize::from(pc) + 2]);
+                let (lsb, msb) = (memory.read(pc + 1), memory.read(pc + 2));
                 cpu.write_register_wide(RegisterWide::SP, util::u8_to_u16(msb, lsb));
             }),
         }),
         0x32 => Some(Opcode {
             mnemonic: "LD [HL-], A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let address = cpu.read_register_wide(RegisterWide::HL);
+                memory.write(address, cpu.read_register(Register::A));
+                cpu.write_register_wide(RegisterWide::HL, address - 1);
+            }),
         }),
         0x33 => Some(Opcode {
             mnemonic: "INC SP".to_string(),
