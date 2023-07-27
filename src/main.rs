@@ -9,6 +9,7 @@ use crate::memory::Memory;
 
 use eframe::egui;
 
+use std::borrow::BorrowMut;
 use std::fs;
 use std::io::Read;
 use std::path::Path;
@@ -96,6 +97,24 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy) {
                 "HL: {:04x}",
                 jameboy.cpu.read_register_wide(RegisterWide::HL)
             ));
+            ui.label(format!(
+                "PC: {:04x}",
+                jameboy.cpu.read_register_wide(RegisterWide::PC)
+            ));
+            ui.label(format!(
+                "SP: {:04x}",
+                jameboy.cpu.read_register_wide(RegisterWide::SP)
+            ));
+            ui.add_space(5.0);
+
+            ui.heading("Flags");
+            ui.horizontal(|ui| {
+                let mut flags = jameboy.cpu.read_flags();
+                ui.add_enabled(false, egui::Checkbox::new(&mut flags.zero, "Z"));
+                ui.add_enabled(false, egui::Checkbox::new(&mut flags.subtract, "S"));
+                ui.add_enabled(false, egui::Checkbox::new(&mut flags.half_carry, "HC"));
+                ui.add_enabled(false, egui::Checkbox::new(&mut flags.carry, "C"));
+            });
         });
 
         egui::Window::new("Program").show(ctx, |ui| {

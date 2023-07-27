@@ -23,10 +23,10 @@ pub enum RegisterWide {
 
 #[derive(Clone, Copy)]
 pub struct Flags {
-    zero: bool,
-    subtract: bool,
-    half_carry: bool,
-    carry: bool,
+    pub zero: bool,
+    pub subtract: bool,
+    pub half_carry: bool,
+    pub carry: bool,
 }
 
 #[derive(Clone, Copy, Default)]
