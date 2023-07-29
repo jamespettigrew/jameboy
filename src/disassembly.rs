@@ -1,12 +1,13 @@
+use crate::memory::Address;
 use crate::opcode;
 
 pub struct Instruction {
-    pub address: usize,
+    pub address: Address,
     pub opcode: Option<opcode::Opcode>,
 }
 
 pub fn disassemble(program: &[u8]) -> Vec<Instruction> {
-    let mut instructions = Vec::<Instruction>::new();
+    let mut instructions = Vec::new();
     let mut pc = 0;
     let mut prefixed = false;
     while pc < program.len() {
@@ -27,7 +28,7 @@ pub fn disassemble(program: &[u8]) -> Vec<Instruction> {
         }
 
         instructions.push(Instruction {
-            address: pc,
+            address: Address(pc as u16),
             opcode,
         });
         pc += pc_increment;

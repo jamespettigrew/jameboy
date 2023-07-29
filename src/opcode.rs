@@ -1,5 +1,5 @@
 use crate::cpu::{Cpu, Register, RegisterWide, WriteFlags};
-use crate::memory::Memory;
+use crate::memory::{Address, Memory};
 use crate::util;
 
 type OpcodeHandler = fn(cpu: &mut Cpu, memory: &mut Memory);
@@ -191,7 +191,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             size_bytes: 3,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
                 let pc = cpu.read_register_wide(RegisterWide::PC);
-                let (lsb, msb) = (memory.read(pc + 1), memory.read(pc + 2));
+                let (lsb, msb) = (memory.read(Address(pc + 1)), memory.read(Address(pc + 2)));
                 cpu.write_register_wide(RegisterWide::HL, util::u8_to_u16(msb, lsb));
             }),
         }),
@@ -275,7 +275,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             size_bytes: 3,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
                 let pc = cpu.read_register_wide(RegisterWide::PC);
-                let (lsb, msb) = (memory.read(pc + 1), memory.read(pc + 2));
+                let (lsb, msb) = (memory.read(Address(pc + 1)), memory.read(Address(pc + 2)));
                 cpu.write_register_wide(RegisterWide::SP, util::u8_to_u16(msb, lsb));
             }),
         }),
@@ -284,7 +284,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             size_bytes: 1,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
                 let address = cpu.read_register_wide(RegisterWide::HL);
-                memory.write(address, cpu.read_register(Register::A));
+                memory.write(Address(address), cpu.read_register(Register::A));
                 cpu.write_register_wide(RegisterWide::HL, address - 1);
             }),
         }),

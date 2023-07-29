@@ -1,3 +1,9 @@
+extern crate derive_more;
+use derive_more::LowerHex;
+
+#[derive(LowerHex, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Address(pub u16);
+
 pub struct Memory([u8; 0xFFFF]);
 
 impl Memory {
@@ -5,11 +11,11 @@ impl Memory {
         Self([0; 0xFFFF])
     }
 
-    pub fn read(&self, address: u16) -> u8 {
-        self.0[usize::from(address)]
+    pub fn read(&self, address: Address) -> u8 {
+        self.0[usize::from(address.0)]
     }
 
-    pub fn write(&mut self, address: u16, value: u8) {
-        self.0[usize::from(address)] = value;
+    pub fn write(&mut self, address: Address, value: u8) {
+        self.0[usize::from(address.0)] = value;
     }
 }
