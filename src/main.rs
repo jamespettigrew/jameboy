@@ -55,9 +55,9 @@ impl Jameboy {
         }
 
         let opcode = opcode.unwrap();
-        opcode.execute(&mut self.cpu, &mut self.memory);
         self.cpu
             .write_register_wide(RegisterWide::PC, pc + opcode.size_bytes as u16);
+        opcode.execute(&mut self.cpu, &mut self.memory);
     }
 }
 

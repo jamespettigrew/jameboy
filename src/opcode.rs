@@ -184,14 +184,22 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x20 => Some(Opcode {
             mnemonic: "JR NZ, e8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let flags = cpu.read_flags();
+                if !flags.zero {
+                    let pc = cpu.read_register_wide(RegisterWide::PC);
+                    let imm = memory.read(Address(pc - 1)) as i8;
+                    let pc_jump = pc.saturating_add_signed(imm as i16);
+                    cpu.write_register_wide(RegisterWide::PC, pc_jump);
+                }
+            }),
         }),
         0x21 => Some(Opcode {
             mnemonic: "LD HL, n16".to_string(),
             size_bytes: 3,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
                 let pc = cpu.read_register_wide(RegisterWide::PC);
-                let (lsb, msb) = (memory.read(Address(pc + 1)), memory.read(Address(pc + 2)));
+                let (lsb, msb) = (memory.read(Address(pc - 2)), memory.read(Address(pc - 1)));
                 cpu.write_register_wide(RegisterWide::HL, util::u8_to_u16(msb, lsb));
             }),
         }),
