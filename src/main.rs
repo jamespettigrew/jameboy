@@ -193,6 +193,39 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruct
                 }
             });
         });
+
+        egui::Window::new("Memory").show(ctx, |ui| {
+            let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
+            let table = TableBuilder::new(ui)
+                .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+                .columns(Column::auto(), 1 + 16); // 1 for offset, 16 for bytes
+
+            table
+                .header(20.0, |mut header| {
+                    header.col(|ui| {
+                        ui.strong("Offset");
+                    });
+                    for i in 0..16 {
+                        header.col(|ui| {
+                            ui.strong(format!("{:02X}", i));
+                        });
+                    }
+                })
+                .body(|body| {
+                    body.rows(text_height, 0xFFFF / 16, |row_index, mut row| {
+                        row.col(|ui| {
+                            ui.label(format!("{:04X}", row_index * 16));
+                        });
+                        for i in 0..16 {
+                            row.col(|ui| {
+                                let address = Address((row_index * 16 + i) as u16);
+                                let value = jameboy.memory.read(address);
+                                ui.label(format!("{:02X}", value));
+                            });
+                        }
+                    });
+                });
+        });
     });
 }
 
