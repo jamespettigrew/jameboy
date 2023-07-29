@@ -67,6 +67,7 @@ impl Jameboy {
 fn main() {
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(640.0, 480.0)),
+        vsync: false,
         ..Default::default()
     };
 
@@ -76,6 +77,7 @@ fn main() {
     let disassembly = disassembly::disassemble(&bootstrap_rom);
 
     eframe::run_simple_native("jameboy", options, move |ctx, _frame| {
+        ctx.request_repaint(); // Run as fast as possible
         render(ctx, &mut jameboy, &disassembly);
         if let State::Running = jameboy.state {
             jameboy.step();
