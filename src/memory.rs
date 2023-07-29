@@ -1,5 +1,7 @@
 extern crate derive_more;
 use derive_more::LowerHex;
+use rand::rngs::SmallRng;
+use rand::{RngCore, SeedableRng};
 
 #[derive(LowerHex, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Address(pub u16);
@@ -8,7 +10,10 @@ pub struct Memory([u8; 0xFFFF]);
 
 impl Memory {
     pub fn init() -> Self {
-        Self([0; 0xFFFF])
+        let mut memory = [0; 0xFFFF];
+        let mut rng = SmallRng::from_entropy();
+        rng.fill_bytes(&mut memory);
+        Self(memory)
     }
 
     pub fn read(&self, address: Address) -> u8 {
