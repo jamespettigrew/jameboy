@@ -21,7 +21,7 @@ pub enum RegisterWide {
     SP,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Flags {
     pub zero: bool,
     pub subtract: bool,
@@ -115,25 +115,152 @@ impl Cpu {
 
     pub fn read_flags(&self) -> Flags {
         Flags {
-            zero: self.f & (1 << 7) == 1,
-            subtract: self.f & (1 << 6) == 1,
-            half_carry: self.f & (1 << 5) == 1,
-            carry: self.f & (1 << 4) == 1,
+            zero: self.f & (1 << 7) != 0,
+            subtract: self.f & (1 << 6) != 0,
+            half_carry: self.f & (1 << 5) != 0,
+            carry: self.f & (1 << 4) != 0,
         }
     }
 
     pub fn write_flags(&mut self, f: WriteFlags) {
-        if let Some(z) = f.zero {
-            self.f |= if z { 1 } else { 0 } << 7;
+        match f.zero {
+            Some(true) => self.f |= 1 << 7,
+            Some(false) => self.f &= !(1 << 7),
+            None => (),
+        };
+
+        match f.subtract {
+            Some(true) => self.f |= 1 << 6,
+            Some(false) => self.f &= !(1 << 6),
+            None => (),
+        };
+
+        match f.half_carry {
+            Some(true) => self.f |= 1 << 5,
+            Some(false) => self.f &= !(1 << 5),
+            None => (),
+        };
+
+        match f.carry {
+            Some(true) => self.f |= 1 << 4,
+            Some(false) => self.f &= !(1 << 4),
+            None => (),
         }
-        if let Some(s) = f.subtract {
-            self.f |= if s { 1 } else { 0 } << 6;
-        }
-        if let Some(hc) = f.half_carry {
-            self.f |= if hc { 1 } else { 0 } << 5;
-        }
-        if let Some(c) = f.carry {
-            self.f |= if c { 1 } else { 0 } << 4;
-        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_read_flags() {
+        let mut cpu = Cpu::init();
+        assert_eq!(
+            Flags {
+                zero: false,
+                subtract: false,
+                half_carry: false,
+                carry: false,
+            },
+            cpu.read_flags()
+        );
+
+        cpu.f = 0b11110000;
+        assert_eq!(
+            Flags {
+                zero: true,
+                subtract: true,
+                half_carry: true,
+                carry: true,
+            },
+            cpu.read_flags()
+        );
+
+        cpu.f = 0b10000000;
+        assert_eq!(
+            Flags {
+                zero: true,
+                subtract: false,
+                half_carry: false,
+                carry: false,
+            },
+            cpu.read_flags()
+        );
+
+        cpu.f = 0b01000000;
+        assert_eq!(
+            Flags {
+                zero: false,
+                subtract: true,
+                half_carry: false,
+                carry: false,
+            },
+            cpu.read_flags()
+        );
+        cpu.f = 0b00100000;
+        assert_eq!(
+            Flags {
+                zero: false,
+                subtract: false,
+                half_carry: true,
+                carry: false,
+            },
+            cpu.read_flags()
+        );
+
+        cpu.f = 0b00010000;
+        assert_eq!(
+            Flags {
+                zero: false,
+                subtract: false,
+                half_carry: false,
+                carry: true,
+            },
+            cpu.read_flags()
+        );
+    }
+
+    #[test]
+    fn test_write_flags() {
+        let mut cpu = Cpu::init();
+        assert_eq!(0b00000000, cpu.f);
+
+        cpu.write_flags(WriteFlags {
+            zero: Some(true),
+            ..Default::default()
+        });
+        assert_eq!(0b10000000, cpu.f);
+
+        cpu.write_flags(WriteFlags {
+            subtract: Some(true),
+            ..Default::default()
+        });
+        assert_eq!(0b11000000, cpu.f);
+
+        cpu.write_flags(WriteFlags {
+            half_carry: Some(true),
+            ..Default::default()
+        });
+        assert_eq!(0b11100000, cpu.f);
+
+        cpu.write_flags(WriteFlags {
+            carry: Some(true),
+            ..Default::default()
+        });
+        assert_eq!(0b11110000, cpu.f);
+
+        cpu.write_flags(WriteFlags {
+            ..Default::default()
+        });
+        assert_eq!(0b11110000, cpu.f);
+
+        cpu.write_flags(WriteFlags {
+            zero: Some(false),
+            subtract: Some(false),
+            half_carry: Some(false),
+            carry: Some(false),
+        });
+        assert_eq!(0b00000000, cpu.f);
     }
 }
