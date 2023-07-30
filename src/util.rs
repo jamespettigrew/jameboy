@@ -37,3 +37,26 @@ pub fn u16_to_u8(val: u16) -> (u8, u8) {
     let lsb = (val & 0xFF) as u8;
     (msb, lsb)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_u8_to_u16() {
+        assert_eq!(0x0000, u8_to_u16(0x00, 0x00));
+        assert_eq!(0xFFFF, u8_to_u16(0xFF, 0xFF));
+        assert_eq!(0x00FF, u8_to_u16(0x00, 0xFF));
+        assert_eq!(0xFF00, u8_to_u16(0xFF, 0x00));
+        assert_eq!(0x4A2F, u8_to_u16(0x4A, 0x2F));
+    }
+
+    #[test]
+    fn test_u16_to_u8() {
+        assert_eq!((0x00, 0x00), u16_to_u8(0x0000));
+        assert_eq!((0xFF, 0xFF), u16_to_u8(0xFFFF));
+        assert_eq!((0x00, 0xFF), u16_to_u8(0x00FF));
+        assert_eq!((0xFF, 0x00), u16_to_u8(0xFF00));
+        assert_eq!((0x4A, 0x2F), u16_to_u8(0x4A2F));
+    }
+}
