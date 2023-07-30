@@ -76,7 +76,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x0A => Some(Opcode {
             mnemonic: "LD A, [BC]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r8_indirect_r16(
+                    cpu,
+                    memory,
+                    Register::A,
+                    RegisterWide::BC,
+                    IndirectAddressingMode::Retain,
+                )
+            }),
         }),
         0x0B => Some(Opcode {
             mnemonic: "DEC BC".to_string(),
@@ -158,7 +166,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x1A => Some(Opcode {
             mnemonic: "LD A, [DE]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r8_indirect_r16(
+                    cpu,
+                    memory,
+                    Register::A,
+                    RegisterWide::DE,
+                    IndirectAddressingMode::Retain,
+                )
+            }),
         }),
         0x1B => Some(Opcode {
             mnemonic: "DEC DE".to_string(),
@@ -256,7 +272,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x2A => Some(Opcode {
             mnemonic: "LD A, [HL+]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r8_indirect_r16(
+                    cpu,
+                    memory,
+                    Register::A,
+                    RegisterWide::HL,
+                    IndirectAddressingMode::Increment,
+                )
+            }),
         }),
         0x2B => Some(Opcode {
             mnemonic: "DEC HL".to_string(),
@@ -346,7 +370,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x3A => Some(Opcode {
             mnemonic: "LD A, [HL-]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r8_indirect_r16(
+                    cpu,
+                    memory,
+                    Register::A,
+                    RegisterWide::HL,
+                    IndirectAddressingMode::Decrement,
+                )
+            }),
         }),
         0x3B => Some(Opcode {
             mnemonic: "DEC SP".to_string(),
@@ -406,7 +438,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x46 => Some(Opcode {
             mnemonic: "LD B, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r8_indirect_r16(
+                    cpu,
+                    memory,
+                    Register::B,
+                    RegisterWide::HL,
+                    IndirectAddressingMode::Retain,
+                )
+            }),
         }),
         0x47 => Some(Opcode {
             mnemonic: "LD B, A".to_string(),
@@ -446,7 +486,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x4E => Some(Opcode {
             mnemonic: "LD C, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r8_indirect_r16(
+                    cpu,
+                    memory,
+                    Register::C,
+                    RegisterWide::HL,
+                    IndirectAddressingMode::Retain,
+                )
+            }),
         }),
         0x4F => Some(Opcode {
             mnemonic: "LD C, A".to_string(),
@@ -486,7 +534,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x56 => Some(Opcode {
             mnemonic: "LD D, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r8_indirect_r16(
+                    cpu,
+                    memory,
+                    Register::D,
+                    RegisterWide::HL,
+                    IndirectAddressingMode::Retain,
+                )
+            }),
         }),
         0x57 => Some(Opcode {
             mnemonic: "LD D, A".to_string(),
@@ -526,7 +582,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x5E => Some(Opcode {
             mnemonic: "LD E, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r8_indirect_r16(
+                    cpu,
+                    memory,
+                    Register::E,
+                    RegisterWide::HL,
+                    IndirectAddressingMode::Retain,
+                )
+            }),
         }),
         0x5F => Some(Opcode {
             mnemonic: "LD E, A".to_string(),
@@ -566,7 +630,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x66 => Some(Opcode {
             mnemonic: "LD H, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r8_indirect_r16(
+                    cpu,
+                    memory,
+                    Register::H,
+                    RegisterWide::HL,
+                    IndirectAddressingMode::Retain,
+                )
+            }),
         }),
         0x67 => Some(Opcode {
             mnemonic: "LD H, A".to_string(),
@@ -606,7 +678,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x6E => Some(Opcode {
             mnemonic: "LD L, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r8_indirect_r16(
+                    cpu,
+                    memory,
+                    Register::L,
+                    RegisterWide::HL,
+                    IndirectAddressingMode::Retain,
+                )
+            }),
         }),
         0x6F => Some(Opcode {
             mnemonic: "LD L, A".to_string(),
@@ -742,7 +822,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x7E => Some(Opcode {
             mnemonic: "LD A, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r8_indirect_r16(
+                    cpu,
+                    memory,
+                    Register::A,
+                    RegisterWide::HL,
+                    IndirectAddressingMode::Retain,
+                )
+            }),
         }),
         0x7F => Some(Opcode {
             mnemonic: "LD A, A".to_string(),
@@ -2673,6 +2761,18 @@ enum IndirectAddressingMode {
     Decrement,
     // Increments the register after the operation
     Increment,
+}
+
+fn ld_r8_indirect_r16(
+    cpu: &mut Cpu,
+    memory: &mut Memory,
+    dst_register: Register,
+    src_register: RegisterWide,
+    mode: IndirectAddressingMode,
+) {
+    let src_address = cpu.read_register_wide(src_register);
+    let value = memory.read(Address(src_address));
+    cpu.write_register(dst_register, value);
 }
 
 fn ld_indirect_r16_r8(
