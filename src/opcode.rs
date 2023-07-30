@@ -1,6 +1,6 @@
 use crate::cpu::{Cpu, Register, RegisterWide, WriteFlags};
 use crate::memory::{Address, Memory};
-use crate::util;
+use crate::util::{self, u8_to_u16};
 
 type OpcodeHandler = fn(cpu: &mut Cpu, memory: &mut Memory);
 
@@ -1217,7 +1217,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xE0 => Some(Opcode {
             mnemonic: "LDH [a8], A".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let pc = cpu.read_register_wide(RegisterWide::PC);
+                let imm = memory.read(Address(pc));
+                let address = u8_to_u16(0xFF, imm);
+                let a = cpu.read_register(Register::A);
+                memory.write(Address(address), a);
+            }),
         }),
         0xE1 => Some(Opcode {
             mnemonic: "POP HL".to_string(),
@@ -1277,7 +1283,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xF0 => Some(Opcode {
             mnemonic: "LDH A, [a8]".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let pc = cpu.read_register_wide(RegisterWide::PC);
+                let imm = memory.read(Address(pc));
+                let address = u8_to_u16(0xFF, imm);
+                let value = memory.read(Address(address));
+                cpu.write_register(Register::A, value);
+            }),
         }),
         0xF1 => Some(Opcode {
             mnemonic: "POP AF".to_string(),
