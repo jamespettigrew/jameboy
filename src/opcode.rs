@@ -383,17 +383,17 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x3B => Some(Opcode {
             mnemonic: "DEC SP".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| dec_r16(cpu, RegisterWide::SP)),
         }),
         0x3C => Some(Opcode {
             mnemonic: "INC A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| inc_r8(cpu, Register::A)),
         }),
         0x3D => Some(Opcode {
             mnemonic: "DEC A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| dec_r8(cpu, Register::A)),
         }),
         0x3E => Some(Opcode {
             mnemonic: "LD A, n8".to_string(),
@@ -1165,7 +1165,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xC1 => Some(Opcode {
             mnemonic: "POP BC".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| pop(cpu, memory, RegisterWide::BC)),
         }),
         0xC2 => Some(Opcode {
             mnemonic: "JP NZ, a16".to_string(),
@@ -1185,7 +1185,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xC5 => Some(Opcode {
             mnemonic: "PUSH BC".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| push(cpu, memory, RegisterWide::BC)),
         }),
         0xC6 => Some(Opcode {
             mnemonic: "ADD A, n8".to_string(),
@@ -1245,7 +1245,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xD1 => Some(Opcode {
             mnemonic: "POP DE".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| pop(cpu, memory, RegisterWide::DE)),
         }),
         0xD2 => Some(Opcode {
             mnemonic: "JP NC, a16".to_string(),
@@ -1260,7 +1260,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xD5 => Some(Opcode {
             mnemonic: "PUSH DE".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| push(cpu, memory, RegisterWide::DE)),
         }),
         0xD6 => Some(Opcode {
             mnemonic: "SUB A, n8".to_string(),
@@ -1316,7 +1316,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xE1 => Some(Opcode {
             mnemonic: "POP HL".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| pop(cpu, memory, RegisterWide::HL)),
         }),
         0xE2 => Some(Opcode {
             mnemonic: "LD [C], A".to_string(),
@@ -1331,7 +1331,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xE5 => Some(Opcode {
             mnemonic: "PUSH HL".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| push(cpu, memory, RegisterWide::HL)),
         }),
         0xE6 => Some(Opcode {
             mnemonic: "AND A, n8".to_string(),
@@ -1382,7 +1382,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xF1 => Some(Opcode {
             mnemonic: "POP AF".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| pop(cpu, memory, RegisterWide::AF)),
         }),
         0xF2 => Some(Opcode {
             mnemonic: "LD A, [C]".to_string(),
@@ -1397,7 +1397,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xF5 => Some(Opcode {
             mnemonic: "PUSH AF".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| push(cpu, memory, RegisterWide::AF)),
         }),
         0xF6 => Some(Opcode {
             mnemonic: "OR A, n8".to_string(),
@@ -2824,6 +2824,25 @@ fn ld_r16_n16(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
     let pc = cpu.read_register_wide(RegisterWide::PC);
     let msb = memory.read(Address(pc - 1));
     let lsb = memory.read(Address(pc - 2));
+    let value = u8_to_u16(msb, lsb);
+    cpu.write_register_wide(r, value);
+}
+
+fn push(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
+    let value = cpu.read_register_wide(r);
+    let (msb, lsb) = util::u16_to_u8(value);
+    let sp = cpu.read_register_wide(RegisterWide::SP);
+    memory.write(Address(sp - 1), msb);
+    memory.write(Address(sp - 2), lsb);
+
+    cpu.write_register_wide(RegisterWide::SP, sp - 2);
+}
+
+fn pop(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
+    let sp = cpu.read_register_wide(RegisterWide::SP);
+    let lsb = memory.read(Address(sp));
+    let msb = memory.read(Address(sp + 1));
+    cpu.write_register_wide(RegisterWide::SP, sp + 2);
     let value = u8_to_u16(msb, lsb);
     cpu.write_register_wide(r, value);
 }
