@@ -54,7 +54,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x06 => Some(Opcode {
             mnemonic: "LD B, n8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| ld_r8_n8(cpu, memory, Register::B)),
         }),
         0x07 => Some(Opcode {
             mnemonic: "RLCA".to_string(),
@@ -94,7 +94,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x0E => Some(Opcode {
             mnemonic: "LD C, n8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| ld_r8_n8(cpu, memory, Register::C)),
         }),
         0x0F => Some(Opcode {
             mnemonic: "RRCA ".to_string(),
@@ -134,7 +134,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x16 => Some(Opcode {
             mnemonic: "LD D, n8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| ld_r8_n8(cpu, memory, Register::D)),
         }),
         0x17 => Some(Opcode {
             mnemonic: "RLA ".to_string(),
@@ -174,7 +174,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x1E => Some(Opcode {
             mnemonic: "LD E, n8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| ld_r8_n8(cpu, memory, Register::E)),
         }),
         0x1F => Some(Opcode {
             mnemonic: "RRA ".to_string(),
@@ -226,7 +226,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x26 => Some(Opcode {
             mnemonic: "LD H, n8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| ld_r8_n8(cpu, memory, Register::H)),
         }),
         0x27 => Some(Opcode {
             mnemonic: "DAA ".to_string(),
@@ -266,7 +266,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x2E => Some(Opcode {
             mnemonic: "LD L, n8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| ld_r8_n8(cpu, memory, Register::L)),
         }),
         0x2F => Some(Opcode {
             mnemonic: "CPL ".to_string(),
@@ -354,7 +354,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x3E => Some(Opcode {
             mnemonic: "LD A, n8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| ld_r8_n8(cpu, memory, Register::A)),
         }),
         0x3F => Some(Opcode {
             mnemonic: "CCF ".to_string(),
@@ -2575,6 +2575,12 @@ fn bit_r8(cpu: &mut Cpu, b: Bit, r: Register) {
         half_carry: Some(true),
         ..Default::default()
     })
+}
+
+fn ld_r8_n8(cpu: &mut Cpu, memory: &mut Memory, r: Register) {
+    let pc = cpu.read_register_wide(RegisterWide::PC);
+    let imm = memory.read(Address(pc - 1));
+    cpu.write_register(r, imm);
 }
 
 fn xor_r8(cpu: &mut Cpu, register: Register) {
