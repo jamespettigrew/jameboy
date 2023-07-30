@@ -41,17 +41,17 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x03 => Some(Opcode {
             mnemonic: "INC BC".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| inc_r16(cpu, RegisterWide::BC)),
         }),
         0x04 => Some(Opcode {
             mnemonic: "INC B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| inc_r8(cpu, Register::B)),
         }),
         0x05 => Some(Opcode {
             mnemonic: "DEC B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| dec_r8(cpu, Register::B)),
         }),
         0x06 => Some(Opcode {
             mnemonic: "LD B, n8".to_string(),
@@ -89,17 +89,17 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x0B => Some(Opcode {
             mnemonic: "DEC BC".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| dec_r16(cpu, RegisterWide::BC)),
         }),
         0x0C => Some(Opcode {
             mnemonic: "INC C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| inc_r8(cpu, Register::C)),
         }),
         0x0D => Some(Opcode {
             mnemonic: "DEC C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| dec_r8(cpu, Register::C)),
         }),
         0x0E => Some(Opcode {
             mnemonic: "LD C, n8".to_string(),
@@ -131,17 +131,17 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x13 => Some(Opcode {
             mnemonic: "INC DE".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| inc_r16(cpu, RegisterWide::DE)),
         }),
         0x14 => Some(Opcode {
             mnemonic: "INC D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| inc_r8(cpu, Register::D)),
         }),
         0x15 => Some(Opcode {
             mnemonic: "DEC D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| dec_r8(cpu, Register::D)),
         }),
         0x16 => Some(Opcode {
             mnemonic: "LD D, n8".to_string(),
@@ -179,17 +179,17 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x1B => Some(Opcode {
             mnemonic: "DEC DE".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| dec_r16(cpu, RegisterWide::DE)),
         }),
         0x1C => Some(Opcode {
             mnemonic: "INC E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| inc_r8(cpu, Register::E)),
         }),
         0x1D => Some(Opcode {
             mnemonic: "DEC E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| dec_r8(cpu, Register::E)),
         }),
         0x1E => Some(Opcode {
             mnemonic: "LD E, n8".to_string(),
@@ -237,17 +237,17 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x23 => Some(Opcode {
             mnemonic: "INC HL".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| inc_r16(cpu, RegisterWide::HL)),
         }),
         0x24 => Some(Opcode {
             mnemonic: "INC H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| inc_r8(cpu, Register::H)),
         }),
         0x25 => Some(Opcode {
             mnemonic: "DEC H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| dec_r8(cpu, Register::H)),
         }),
         0x26 => Some(Opcode {
             mnemonic: "LD H, n8".to_string(),
@@ -285,17 +285,17 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x2B => Some(Opcode {
             mnemonic: "DEC HL".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| dec_r16(cpu, RegisterWide::HL)),
         }),
         0x2C => Some(Opcode {
             mnemonic: "INC L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| inc_r8(cpu, Register::L)),
         }),
         0x2D => Some(Opcode {
             mnemonic: "DEC L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| dec_r8(cpu, Register::L)),
         }),
         0x2E => Some(Opcode {
             mnemonic: "LD L, n8".to_string(),
@@ -335,7 +335,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x33 => Some(Opcode {
             mnemonic: "INC SP".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| inc_r16(cpu, RegisterWide::SP)),
         }),
         0x34 => Some(Opcode {
             mnemonic: "INC [HL]".to_string(),
@@ -2748,6 +2748,26 @@ fn bit_r8(cpu: &mut Cpu, b: Bit, r: Register) {
         half_carry: Some(true),
         ..Default::default()
     })
+}
+
+fn dec_r8(cpu: &mut Cpu, r: Register) {
+    let value = cpu.read_register(r);
+    cpu.write_register(r, value - 1);
+}
+
+fn dec_r16(cpu: &mut Cpu, r: RegisterWide) {
+    let value = cpu.read_register_wide(r);
+    cpu.write_register_wide(r, value - 1);
+}
+
+fn inc_r8(cpu: &mut Cpu, r: Register) {
+    let value = cpu.read_register(r);
+    cpu.write_register(r, value + 1);
+}
+
+fn inc_r16(cpu: &mut Cpu, r: RegisterWide) {
+    let value = cpu.read_register_wide(r);
+    cpu.write_register_wide(r, value + 1);
 }
 
 fn ld_r8_r8(cpu: &mut Cpu, dst_register: Register, src_register: Register) {
