@@ -364,32 +364,32 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x40 => Some(Opcode {
             mnemonic: "LD B, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::B, Register::B)),
         }),
         0x41 => Some(Opcode {
             mnemonic: "LD B, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::B, Register::C)),
         }),
         0x42 => Some(Opcode {
             mnemonic: "LD B, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::B, Register::D)),
         }),
         0x43 => Some(Opcode {
             mnemonic: "LD B, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::B, Register::E)),
         }),
         0x44 => Some(Opcode {
             mnemonic: "LD B, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::B, Register::H)),
         }),
         0x45 => Some(Opcode {
             mnemonic: "LD B, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::B, Register::L)),
         }),
         0x46 => Some(Opcode {
             mnemonic: "LD B, [HL]".to_string(),
@@ -399,37 +399,37 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x47 => Some(Opcode {
             mnemonic: "LD B, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::B, Register::A)),
         }),
         0x48 => Some(Opcode {
             mnemonic: "LD C, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::C, Register::B)),
         }),
         0x49 => Some(Opcode {
             mnemonic: "LD C, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::C, Register::C)),
         }),
         0x4A => Some(Opcode {
             mnemonic: "LD C, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::C, Register::D)),
         }),
         0x4B => Some(Opcode {
             mnemonic: "LD C, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::C, Register::E)),
         }),
         0x4C => Some(Opcode {
             mnemonic: "LD C, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::C, Register::H)),
         }),
         0x4D => Some(Opcode {
             mnemonic: "LD C, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::C, Register::L)),
         }),
         0x4E => Some(Opcode {
             mnemonic: "LD C, [HL]".to_string(),
@@ -439,37 +439,37 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x4F => Some(Opcode {
             mnemonic: "LD C, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::C, Register::A)),
         }),
         0x50 => Some(Opcode {
             mnemonic: "LD D, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::D, Register::B)),
         }),
         0x51 => Some(Opcode {
             mnemonic: "LD D, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::D, Register::C)),
         }),
         0x52 => Some(Opcode {
             mnemonic: "LD D, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::D, Register::D)),
         }),
         0x53 => Some(Opcode {
             mnemonic: "LD D, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::D, Register::E)),
         }),
         0x54 => Some(Opcode {
             mnemonic: "LD D, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::D, Register::H)),
         }),
         0x55 => Some(Opcode {
             mnemonic: "LD D, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::D, Register::L)),
         }),
         0x56 => Some(Opcode {
             mnemonic: "LD D, [HL]".to_string(),
@@ -479,37 +479,37 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x57 => Some(Opcode {
             mnemonic: "LD D, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::D, Register::A)),
         }),
         0x58 => Some(Opcode {
             mnemonic: "LD E, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::E, Register::B)),
         }),
         0x59 => Some(Opcode {
             mnemonic: "LD E, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::E, Register::C)),
         }),
         0x5A => Some(Opcode {
             mnemonic: "LD E, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::E, Register::D)),
         }),
         0x5B => Some(Opcode {
             mnemonic: "LD E, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::E, Register::E)),
         }),
         0x5C => Some(Opcode {
             mnemonic: "LD E, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::E, Register::H)),
         }),
         0x5D => Some(Opcode {
             mnemonic: "LD E, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::E, Register::L)),
         }),
         0x5E => Some(Opcode {
             mnemonic: "LD E, [HL]".to_string(),
@@ -519,37 +519,37 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x5F => Some(Opcode {
             mnemonic: "LD E, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::E, Register::A)),
         }),
         0x60 => Some(Opcode {
             mnemonic: "LD H, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::H, Register::B)),
         }),
         0x61 => Some(Opcode {
             mnemonic: "LD H, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::H, Register::C)),
         }),
         0x62 => Some(Opcode {
             mnemonic: "LD H, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::H, Register::D)),
         }),
         0x63 => Some(Opcode {
             mnemonic: "LD H, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::H, Register::E)),
         }),
         0x64 => Some(Opcode {
             mnemonic: "LD H, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::H, Register::H)),
         }),
         0x65 => Some(Opcode {
             mnemonic: "LD H, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::H, Register::L)),
         }),
         0x66 => Some(Opcode {
             mnemonic: "LD H, [HL]".to_string(),
@@ -559,37 +559,37 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x67 => Some(Opcode {
             mnemonic: "LD H, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::H, Register::A)),
         }),
         0x68 => Some(Opcode {
             mnemonic: "LD L, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::L, Register::B)),
         }),
         0x69 => Some(Opcode {
             mnemonic: "LD L, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::L, Register::C)),
         }),
         0x6A => Some(Opcode {
             mnemonic: "LD L, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::L, Register::D)),
         }),
         0x6B => Some(Opcode {
             mnemonic: "LD L, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::L, Register::E)),
         }),
         0x6C => Some(Opcode {
             mnemonic: "LD L, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::L, Register::H)),
         }),
         0x6D => Some(Opcode {
             mnemonic: "LD L, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::L, Register::L)),
         }),
         0x6E => Some(Opcode {
             mnemonic: "LD L, [HL]".to_string(),
@@ -599,7 +599,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x6F => Some(Opcode {
             mnemonic: "LD L, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::L, Register::A)),
         }),
         0x70 => Some(Opcode {
             mnemonic: "LD [HL], B".to_string(),
@@ -644,32 +644,32 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x78 => Some(Opcode {
             mnemonic: "LD A, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::A, Register::B)),
         }),
         0x79 => Some(Opcode {
             mnemonic: "LD A, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::A, Register::C)),
         }),
         0x7A => Some(Opcode {
             mnemonic: "LD A, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::A, Register::D)),
         }),
         0x7B => Some(Opcode {
             mnemonic: "LD A, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::A, Register::E)),
         }),
         0x7C => Some(Opcode {
             mnemonic: "LD A, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::A, Register::H)),
         }),
         0x7D => Some(Opcode {
             mnemonic: "LD A, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::A, Register::L)),
         }),
         0x7E => Some(Opcode {
             mnemonic: "LD A, [HL]".to_string(),
@@ -679,7 +679,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x7F => Some(Opcode {
             mnemonic: "LD A, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _: &mut Memory| ld_r8_r8(cpu, Register::A, Register::A)),
         }),
         0x80 => Some(Opcode {
             mnemonic: "ADD A, B".to_string(),
@@ -2575,6 +2575,10 @@ fn bit_r8(cpu: &mut Cpu, b: Bit, r: Register) {
         half_carry: Some(true),
         ..Default::default()
     })
+}
+
+fn ld_r8_r8(cpu: &mut Cpu, dst_register: Register, src_register: Register) {
+    cpu.write_register(dst_register, cpu.read_register(src_register));
 }
 
 fn ld_r8_n8(cpu: &mut Cpu, memory: &mut Memory, r: Register) {
