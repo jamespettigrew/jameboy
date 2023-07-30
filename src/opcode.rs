@@ -29,7 +29,9 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x01 => Some(Opcode {
             mnemonic: "LD BC, n16".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r16_n16(cpu, memory, RegisterWide::BC)
+            }),
         }),
         0x02 => Some(Opcode {
             mnemonic: "LD [BC], A".to_string(),
@@ -109,7 +111,9 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x11 => Some(Opcode {
             mnemonic: "LD DE, n16".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_r16_n16(cpu, memory, RegisterWide::DE)
+            }),
         }),
         0x12 => Some(Opcode {
             mnemonic: "LD [DE], A".to_string(),
@@ -198,9 +202,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             mnemonic: "LD HL, n16".to_string(),
             size_bytes: 3,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
-                let pc = cpu.read_register_wide(RegisterWide::PC);
-                let (lsb, msb) = (memory.read(Address(pc - 2)), memory.read(Address(pc - 1)));
-                cpu.write_register_wide(RegisterWide::HL, util::u8_to_u16(msb, lsb));
+                ld_r16_n16(cpu, memory, RegisterWide::HL)
             }),
         }),
         0x22 => Some(Opcode {
@@ -290,9 +292,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             mnemonic: "LD SP, n16".to_string(),
             size_bytes: 3,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
-                let pc = cpu.read_register_wide(RegisterWide::PC);
-                let (lsb, msb) = (memory.read(Address(pc + 1)), memory.read(Address(pc + 2)));
-                cpu.write_register_wide(RegisterWide::SP, util::u8_to_u16(msb, lsb));
+                ld_r16_n16(cpu, memory, RegisterWide::SP)
             }),
         }),
         0x32 => Some(Opcode {
@@ -2698,6 +2698,14 @@ fn ld_r8_n8(cpu: &mut Cpu, memory: &mut Memory, r: Register) {
     let pc = cpu.read_register_wide(RegisterWide::PC);
     let imm = memory.read(Address(pc - 1));
     cpu.write_register(r, imm);
+}
+
+fn ld_r16_n16(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
+    let pc = cpu.read_register_wide(RegisterWide::PC);
+    let msb = memory.read(Address(pc - 1));
+    let lsb = memory.read(Address(pc - 2));
+    let value = u8_to_u16(msb, lsb);
+    cpu.write_register_wide(r, value);
 }
 
 fn xor_r8(cpu: &mut Cpu, register: Register) {
