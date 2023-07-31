@@ -840,32 +840,32 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x80 => Some(Opcode {
             mnemonic: "ADD A, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| add_r8(cpu, Register::B)),
         }),
         0x81 => Some(Opcode {
             mnemonic: "ADD A, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| add_r8(cpu, Register::C)),
         }),
         0x82 => Some(Opcode {
             mnemonic: "ADD A, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| add_r8(cpu, Register::D)),
         }),
         0x83 => Some(Opcode {
             mnemonic: "ADD A, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| add_r8(cpu, Register::E)),
         }),
         0x84 => Some(Opcode {
             mnemonic: "ADD A, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| add_r8(cpu, Register::H)),
         }),
         0x85 => Some(Opcode {
             mnemonic: "ADD A, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| add_r8(cpu, Register::L)),
         }),
         0x86 => Some(Opcode {
             mnemonic: "ADD A, [HL]".to_string(),
@@ -875,7 +875,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x87 => Some(Opcode {
             mnemonic: "ADD A, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| add_r8(cpu, Register::A)),
         }),
         0x88 => Some(Opcode {
             mnemonic: "ADC A, B".to_string(),
@@ -2736,6 +2736,18 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
     }
 }
 
+fn add_r8(cpu: &mut Cpu, r: Register) {
+    let a = cpu.read_register(Register::A);
+    let r = cpu.read_register(r);
+    let (result, overflowed) = a.overflowing_add(r);
+    cpu.write_register(Register::A, result);
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(false),
+        half_carry: Some((a & 0xF) + (r & 0xF) > 0xF),
+        carry: Some(overflowed),
+    });
+}
 enum Bit {
     Zero = 0,
     One = 1,
