@@ -149,9 +149,9 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| ld_r8_n8(cpu, memory, Register::D)),
         }),
         0x17 => Some(Opcode {
-            mnemonic: "RLA ".to_string(),
+            mnemonic: "RLA".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rl_r8(cpu, Register::A)),
         }),
         0x18 => Some(Opcode {
             mnemonic: "JR e8".to_string(),
@@ -1535,32 +1535,32 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x10 => Some(Opcode {
             mnemonic: "RL B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rl_r8(cpu, Register::B)),
         }),
         0x11 => Some(Opcode {
             mnemonic: "RL C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rl_r8(cpu, Register::C)),
         }),
         0x12 => Some(Opcode {
             mnemonic: "RL D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rl_r8(cpu, Register::D)),
         }),
         0x13 => Some(Opcode {
             mnemonic: "RL E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rl_r8(cpu, Register::E)),
         }),
         0x14 => Some(Opcode {
             mnemonic: "RL H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rl_r8(cpu, Register::H)),
         }),
         0x15 => Some(Opcode {
             mnemonic: "RL L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rl_r8(cpu, Register::L)),
         }),
         0x16 => Some(Opcode {
             mnemonic: "RL [HL]".to_string(),
@@ -1570,7 +1570,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x17 => Some(Opcode {
             mnemonic: "RL A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rl_r8(cpu, Register::A)),
         }),
         0x18 => Some(Opcode {
             mnemonic: "RR B".to_string(),
@@ -2843,6 +2843,20 @@ fn push(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
     memory.write(Address(sp - 2), lsb);
 
     cpu.write_register_wide(RegisterWide::SP, sp - 2);
+}
+
+fn rl_r8(cpu: &mut Cpu, r: Register) {
+    let mut register_value = cpu.read_register(r);
+    cpu.write_flags(WriteFlags {
+        carry: Some(register_value & 0b1000_0000 != 0),
+        ..Default::default()
+    });
+    register_value <<= 1;
+    if cpu.read_flags().carry {
+        register_value |= 0b0000_0001
+    };
+
+    cpu.write_register(r, register_value);
 }
 
 fn pop(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
