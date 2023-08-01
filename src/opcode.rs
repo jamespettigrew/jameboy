@@ -1203,9 +1203,9 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             handler: None,
         }),
         0xC9 => Some(Opcode {
-            mnemonic: "RET ".to_string(),
+            mnemonic: "RET".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| pop(cpu, memory, RegisterWide::PC)),
         }),
         0xCA => Some(Opcode {
             mnemonic: "JP Z, a16".to_string(),
