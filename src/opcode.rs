@@ -1237,7 +1237,20 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xCE => Some(Opcode {
             mnemonic: "ADC A, n8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let a = cpu.read_register(Register::A);
+                let pc = cpu.read_register_wide(RegisterWide::PC);
+                let n = memory.read(Address(pc - 1));
+                let (result, overflowed) = a.overflowing_add(n);
+                let (result, with_carry_overflowed) = result.overflowing_add(1);
+                cpu.write_register(Register::A, result);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(result == 0),
+                    subtract: Some(false),
+                    half_carry: Some((a & 0xF) + (n & 0xF) > 0xF),
+                    carry: Some(overflowed || with_carry_overflowed),
+                });
+            }),
         }),
         0xCF => Some(Opcode {
             mnemonic: "RST $08".to_string(),
