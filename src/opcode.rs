@@ -2827,6 +2827,13 @@ fn ld_r8_indirect_r16(
     let src_address = cpu.read_register_wide(src_register);
     let value = memory.read(Address(src_address));
     cpu.write_register(dst_register, value);
+
+    let new_src_address = match mode {
+        IndirectAddressingMode::Retain => src_address,
+        IndirectAddressingMode::Increment => src_address + 1,
+        IndirectAddressingMode::Decrement => src_address - 1,
+    };
+    cpu.write_register_wide(src_register, new_src_address);
 }
 
 fn ld_indirect_r16_r8(
