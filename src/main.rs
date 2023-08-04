@@ -65,6 +65,7 @@ impl Jameboy {
 }
 
 fn main() {
+    env_logger::init();
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(640.0, 480.0)),
         vsync: false,
@@ -87,98 +88,98 @@ fn main() {
 
 fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruction>) {
     egui::CentralPanel::default().show(ctx, |ui| {
-        egui::Window::new("CPU").show(ctx, |ui| {
-            ui.heading("Registers");
-            ui.label(format!(
-                "AF: {:04x}",
-                jameboy.cpu.read_register_wide(RegisterWide::AF)
-            ));
-            ui.label(format!(
-                "BC: {:04x}",
-                jameboy.cpu.read_register_wide(RegisterWide::BC)
-            ));
-            ui.label(format!(
-                "DE: {:04x}",
-                jameboy.cpu.read_register_wide(RegisterWide::DE)
-            ));
-            ui.label(format!(
-                "HL: {:04x}",
-                jameboy.cpu.read_register_wide(RegisterWide::HL)
-            ));
-            ui.label(format!(
-                "PC: {:04x}",
-                jameboy.cpu.read_register_wide(RegisterWide::PC)
-            ));
-            ui.label(format!(
-                "SP: {:04x}",
-                jameboy.cpu.read_register_wide(RegisterWide::SP)
-            ));
-            ui.add_space(5.0);
+        //egui::Window::new("CPU").show(ctx, |ui| {
+        //    ui.heading("Registers");
+        //    ui.label(format!(
+        //        "AF: {:04x}",
+        //        jameboy.cpu.read_register_wide(RegisterWide::AF)
+        //    ));
+        //    ui.label(format!(
+        //        "BC: {:04x}",
+        //        jameboy.cpu.read_register_wide(RegisterWide::BC)
+        //    ));
+        //    ui.label(format!(
+        //        "DE: {:04x}",
+        //        jameboy.cpu.read_register_wide(RegisterWide::DE)
+        //    ));
+        //    ui.label(format!(
+        //        "HL: {:04x}",
+        //        jameboy.cpu.read_register_wide(RegisterWide::HL)
+        //    ));
+        //    ui.label(format!(
+        //        "PC: {:04x}",
+        //        jameboy.cpu.read_register_wide(RegisterWide::PC)
+        //    ));
+        //    ui.label(format!(
+        //        "SP: {:04x}",
+        //        jameboy.cpu.read_register_wide(RegisterWide::SP)
+        //    ));
+        //    ui.add_space(5.0);
 
-            ui.heading("Flags");
-            ui.horizontal(|ui| {
-                let mut flags = jameboy.cpu.read_flags();
-                ui.add_enabled(false, egui::Checkbox::new(&mut flags.zero, "Z"));
-                ui.add_enabled(false, egui::Checkbox::new(&mut flags.subtract, "S"));
-                ui.add_enabled(false, egui::Checkbox::new(&mut flags.half_carry, "HC"));
-                ui.add_enabled(false, egui::Checkbox::new(&mut flags.carry, "C"));
-            });
-        });
+        //    ui.heading("Flags");
+        //    ui.horizontal(|ui| {
+        //        let mut flags = jameboy.cpu.read_flags();
+        //        ui.add_enabled(false, egui::Checkbox::new(&mut flags.zero, "Z"));
+        //        ui.add_enabled(false, egui::Checkbox::new(&mut flags.subtract, "S"));
+        //        ui.add_enabled(false, egui::Checkbox::new(&mut flags.half_carry, "HC"));
+        //        ui.add_enabled(false, egui::Checkbox::new(&mut flags.carry, "C"));
+        //    });
+        //});
 
         egui::Window::new("Program").show(ctx, |ui| {
-            let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
-            let mut table = TableBuilder::new(ui)
-                .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-                .column(Column::auto())
-                .column(Column::auto());
-            let pc = jameboy.cpu.read_register_wide(RegisterWide::PC);
-
-            table = table.scroll_to_row(pc as usize, Some(Align::Center));
-            table
-                .header(20.0, |mut header| {
-                    header.col(|ui| {
-                        ui.strong("Address");
-                    });
-                    header.col(|ui| {
-                        ui.strong("Instruction");
-                    });
-                })
-                .body(|body| {
-                    body.rows(text_height, disassembly.len(), |row_index, mut row| {
-                        let instruction = &disassembly[row_index];
-                        row.col(|ui| {
-                            if Address(pc) == instruction.address {
-                                let max_rect = ui.max_rect();
-                                let stripe_rect = max_rect.expand2(0.5 * ui.spacing().item_spacing);
-
-                                ui.painter().rect_filled(
-                                    stripe_rect,
-                                    0.0,
-                                    ui.visuals().extreme_bg_color,
-                                );
-                            }
-                            ui.label(format!("{:04x}", instruction.address));
-                        });
-                        row.col(|ui| {
-                            if Address(pc) == instruction.address {
-                                let max_rect = ui.max_rect();
-                                let stripe_rect = max_rect.expand2(0.5 * ui.spacing().item_spacing);
-
-                                ui.painter().rect_filled(
-                                    stripe_rect,
-                                    0.0,
-                                    ui.visuals().extreme_bg_color,
-                                );
-                            }
-
-                            let label = match &instruction.opcode {
-                                Some(op) => op.mnemonic.clone(),
-                                None => "UNKNOWN".to_string(),
-                            };
-                            ui.label(label);
-                        });
-                    });
-                });
+            //            let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
+            //            let mut table = TableBuilder::new(ui)
+            //                .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+            //                .column(Column::auto())
+            //                .column(Column::auto());
+            //            let pc = jameboy.cpu.read_register_wide(RegisterWide::PC);
+            //
+            //            table = table.scroll_to_row(pc as usize, Some(Align::Center));
+            //            table
+            //                .header(20.0, |mut header| {
+            //                    header.col(|ui| {
+            //                        ui.strong("Address");
+            //                    });
+            //                    header.col(|ui| {
+            //                        ui.strong("Instruction");
+            //                    });
+            //                })
+            //                .body(|body| {
+            //                    body.rows(text_height, disassembly.len(), |row_index, mut row| {
+            //                        let instruction = &disassembly[row_index];
+            //                        row.col(|ui| {
+            //                            if Address(pc) == instruction.address {
+            //                                let max_rect = ui.max_rect();
+            //                                let stripe_rect = max_rect.expand2(0.5 * ui.spacing().item_spacing);
+            //
+            //                                ui.painter().rect_filled(
+            //                                    stripe_rect,
+            //                                    0.0,
+            //                                    ui.visuals().extreme_bg_color,
+            //                                );
+            //                            }
+            //                            ui.label(format!("{:04x}", instruction.address));
+            //                        });
+            //                        row.col(|ui| {
+            //                            if Address(pc) == instruction.address {
+            //                                let max_rect = ui.max_rect();
+            //                                let stripe_rect = max_rect.expand2(0.5 * ui.spacing().item_spacing);
+            //
+            //                                ui.painter().rect_filled(
+            //                                    stripe_rect,
+            //                                    0.0,
+            //                                    ui.visuals().extreme_bg_color,
+            //                                );
+            //                            }
+            //
+            //                            let label = match &instruction.opcode {
+            //                                Some(op) => op.mnemonic.clone(),
+            //                                None => "UNKNOWN".to_string(),
+            //                            };
+            //                            ui.label(label);
+            //                        });
+            //                    });
+            //                });
 
             ui.add_space(10.0);
             ui.horizontal(|ui| match jameboy.state {
@@ -199,38 +200,38 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruct
             });
         });
 
-        egui::Window::new("Memory").show(ctx, |ui| {
-            let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
-            let table = TableBuilder::new(ui)
-                .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-                .columns(Column::auto(), 1 + 16); // 1 for offset, 16 for bytes
+        //       egui::Window::new("Memory").show(ctx, |ui| {
+        //           let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
+        //           let table = TableBuilder::new(ui)
+        //               .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+        //               .columns(Column::auto(), 1 + 16); // 1 for offset, 16 for bytes
 
-            table
-                .header(20.0, |mut header| {
-                    header.col(|ui| {
-                        ui.strong("Offset");
-                    });
-                    for i in 0..16 {
-                        header.col(|ui| {
-                            ui.strong(format!("{:02X}", i));
-                        });
-                    }
-                })
-                .body(|body| {
-                    body.rows(text_height, 0xFFFF / 16, |row_index, mut row| {
-                        row.col(|ui| {
-                            ui.label(format!("{:04X}", row_index * 16));
-                        });
-                        for i in 0..16 {
-                            row.col(|ui| {
-                                let address = Address((row_index * 16 + i) as u16);
-                                let value = jameboy.memory.read(address);
-                                ui.label(format!("{:02X}", value));
-                            });
-                        }
-                    });
-                });
-        });
+        //           table
+        //               .header(20.0, |mut header| {
+        //                   header.col(|ui| {
+        //                       ui.strong("Offset");
+        //                   });
+        //                   for i in 0..16 {
+        //                       header.col(|ui| {
+        //                           ui.strong(format!("{:02X}", i));
+        //                       });
+        //                   }
+        //               })
+        //               .body(|body| {
+        //                   body.rows(text_height, 0xFFFF / 16, |row_index, mut row| {
+        //                       row.col(|ui| {
+        //                           ui.label(format!("{:04X}", row_index * 16));
+        //                       });
+        //                       for i in 0..16 {
+        //                           row.col(|ui| {
+        //                               let address = Address((row_index * 16 + i) as u16);
+        //                               let value = jameboy.memory.read(address);
+        //                               ui.label(format!("{:02X}", value));
+        //                           });
+        //                       }
+        //                   });
+        //               });
+        //       });
     });
 }
 

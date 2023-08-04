@@ -10,4 +10,5 @@ derive_more = "0.99.17"
 eframe = "0.22.0"
 egui = "0.22.0"
 egui_extras = "0.22.0"
+env_logger = "0.10"
 rand = { version="0.8.5", features=["small_rng"]}

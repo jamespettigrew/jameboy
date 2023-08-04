@@ -15,6 +15,10 @@ impl Opcode {
     pub fn execute(&self, cpu: &mut Cpu, memory: &mut Memory) {
         if let Some(handler) = self.handler {
             handler(cpu, memory);
+        } else {
+            if self.mnemonic != "PREFIX" {
+                println!("{}", self.mnemonic);
+            }
         }
     }
 }
