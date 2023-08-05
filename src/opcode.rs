@@ -1144,32 +1144,32 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xB8 => Some(Opcode {
             mnemonic: "CP A, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| cp_r8(cpu, Register::B)),
         }),
         0xB9 => Some(Opcode {
             mnemonic: "CP A, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| cp_r8(cpu, Register::C)),
         }),
         0xBA => Some(Opcode {
             mnemonic: "CP A, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| cp_r8(cpu, Register::D)),
         }),
         0xBB => Some(Opcode {
             mnemonic: "CP A, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| cp_r8(cpu, Register::E)),
         }),
         0xBC => Some(Opcode {
             mnemonic: "CP A, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| cp_r8(cpu, Register::H)),
         }),
         0xBD => Some(Opcode {
             mnemonic: "CP A, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| cp_r8(cpu, Register::L)),
         }),
         0xBE => Some(Opcode {
             mnemonic: "CP A, [HL]".to_string(),
@@ -1179,7 +1179,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xBF => Some(Opcode {
             mnemonic: "CP A, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| cp_r8(cpu, Register::A)),
         }),
         0xC0 => Some(Opcode {
             mnemonic: "RET NZ".to_string(),
@@ -1476,7 +1476,18 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xFE => Some(Opcode {
             mnemonic: "CP A, n8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let a = cpu.read_register(Register::A);
+                let pc = cpu.read_register_wide(RegisterWide::PC);
+                let imm = memory.read(Address(pc - 1));
+                let (result, overflowed) = a.overflowing_sub(imm);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(result == 0),
+                    subtract: Some(false),
+                    half_carry: Some((a & 0xF) + (imm & 0xF) > 0xF),
+                    carry: Some(overflowed),
+                });
+            }),
         }),
         0xFF => Some(Opcode {
             mnemonic: "RST $38".to_string(),
@@ -2819,6 +2830,18 @@ fn bit_r8(cpu: &mut Cpu, b: Bit, r: Register) {
         half_carry: Some(true),
         ..Default::default()
     })
+}
+
+fn cp_r8(cpu: &mut Cpu, r: Register) {
+    let a = cpu.read_register(Register::A);
+    let r = cpu.read_register(r);
+    let (result, overflowed) = a.overflowing_sub(r);
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(false),
+        half_carry: Some((a & 0xF) + (r & 0xF) > 0xF),
+        carry: Some(overflowed),
+    });
 }
 
 fn dec_r8(cpu: &mut Cpu, r: Register) {
