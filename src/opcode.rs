@@ -165,7 +165,12 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x18 => Some(Opcode {
             mnemonic: "JR e8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let mut pc = cpu.read_register_wide(RegisterWide::PC);
+                let imm = memory.read(Address(pc - 1));
+                pc = pc.wrapping_add_signed(imm as i16);
+                cpu.write_register_wide(RegisterWide::PC, pc);
+            }),
         }),
         0x19 => Some(Opcode {
             mnemonic: "ADD HL, DE".to_string(),
@@ -271,7 +276,17 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x28 => Some(Opcode {
             mnemonic: "JR Z, e8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let flags = cpu.read_flags();
+                if !flags.zero {
+                    return;
+                }
+
+                let mut pc = cpu.read_register_wide(RegisterWide::PC);
+                let imm = memory.read(Address(pc - 1));
+                pc = pc.wrapping_add_signed(imm as i16);
+                cpu.write_register_wide(RegisterWide::PC, pc);
+            }),
         }),
         0x29 => Some(Opcode {
             mnemonic: "ADD HL, HL".to_string(),
