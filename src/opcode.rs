@@ -1400,7 +1400,14 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xEA => Some(Opcode {
             mnemonic: "LD [a16], A".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let pc = cpu.read_register_wide(RegisterWide::PC);
+                let lsb = memory.read(Address(pc - 2));
+                let msb = memory.read(Address(pc - 1));
+                let address = util::u8_to_u16(msb, lsb);
+                let a = cpu.read_register(Register::A);
+                memory.write(Address(address), a);
+            }),
         }),
         0xEE => Some(Opcode {
             mnemonic: "XOR A, n8".to_string(),
