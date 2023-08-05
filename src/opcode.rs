@@ -66,7 +66,16 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x08 => Some(Opcode {
             mnemonic: "LD [a16], SP".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let pc = cpu.read_register_wide(RegisterWide::PC);
+                let lsb = memory.read(Address(pc - 2));
+                let msb = memory.read(Address(pc - 1));
+                let address = util::u8_to_u16(msb, lsb);
+                let sp = cpu.read_register_wide(RegisterWide::SP);
+                let (sp_msb, sp_lsb) = util::u16_to_u8(sp);
+                memory.write(Address(address), lsb);
+                memory.write(Address(address + 1), msb);
+            }),
         }),
         0x09 => Some(Opcode {
             mnemonic: "ADD HL, BC".to_string(),
