@@ -4,16 +4,16 @@ mod memory;
 mod opcode;
 mod util;
 
-use crate::cpu::{Cpu, RegisterWide};
+use crate::cpu::{Cpu, Register, RegisterWide, WriteFlags};
 use crate::disassembly::Instruction;
 use crate::memory::{Address, Memory};
 
 use eframe::egui;
 use egui::Align;
 use egui_extras::{Column, TableBuilder};
-
-use std::fs;
-use std::io::Read;
+use std::env;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::Path;
 
 type ROM = Vec<u8>;
@@ -51,6 +51,7 @@ impl Jameboy {
         };
 
         if opcode.is_none() {
+            self.state = State::Paused;
             return;
         }
 
@@ -65,6 +66,15 @@ impl Jameboy {
 }
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 {
+        if &args[1] == &String::from("--doctor") {
+            let rom_path = Path::new(&args[2]);
+            let _ = doctor(rom_path);
+            return;
+        }
+    }
+
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(640.0, 480.0)),
         vsync: false,
@@ -83,6 +93,46 @@ fn main() {
             jameboy.step();
         }
     });
+}
+
+fn doctor(rom_path: &Path) -> std::io::Result<()> {
+    let mut file = File::create("doctor.out")?;
+
+    let mut jameboy = Jameboy::init();
+    jameboy.cpu.write_register(Register::A, 0x01);
+    jameboy.cpu.write_register(Register::C, 0x13);
+    jameboy.cpu.write_register(Register::E, 0xD8);
+    jameboy.cpu.write_register(Register::H, 0x01);
+    jameboy.cpu.write_register(Register::L, 0x4D);
+    jameboy.cpu.write_register(Register::L, 0x4D);
+    jameboy.cpu.write_flags(WriteFlags {
+        zero: Some(true),
+        subtract: None,
+        half_carry: Some(true),
+        carry: Some(true),
+    });
+    jameboy.cpu.write_register_wide(RegisterWide::SP, 0xFFFE);
+    jameboy.cpu.write_register_wide(RegisterWide::PC, 0x0100);
+
+    let rom = open_rom(rom_path);
+    map_rom_into_memory(&rom, &mut jameboy.memory);
+    jameboy.state = State::Running;
+
+    while let State::Running = jameboy.state {
+        let cpu = &jameboy.cpu;
+        let memory = &jameboy.memory;
+        let pc = cpu.pc;
+        let aa = memory.read(Address(pc));
+        let bb = memory.read(Address(pc + 1));
+        let cc = memory.read(Address(pc + 2));
+        let dd = memory.read(Address(pc + 3));
+        let log = format!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
+            cpu.a, cpu.f, cpu.b, cpu.c, cpu.d, cpu.e, cpu.h, cpu.l, cpu.sp, cpu.pc, aa, bb, cc, dd);
+        file.write_all(&log.into_bytes())?;
+        jameboy.step();
+    }
+
+    Ok(())
 }
 
 fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruction>) {
@@ -241,7 +291,7 @@ fn map_rom_into_memory(rom: &ROM, memory: &mut Memory) {
 }
 
 fn open_rom(rom_path: &Path) -> ROM {
-    let mut rom_file = fs::File::open(rom_path).expect("ROM path should be valid");
+    let mut rom_file = File::open(rom_path).expect("ROM path should be valid");
     let mut rom = Vec::new();
     rom_file
         .read_to_end(&mut rom)

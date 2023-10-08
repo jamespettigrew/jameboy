@@ -39,16 +39,16 @@ pub struct WriteFlags {
 
 #[derive(Debug)]
 pub struct Cpu {
-    a: u8,
-    b: u8,
-    c: u8,
-    d: u8,
-    e: u8,
-    f: u8,
-    h: u8,
-    l: u8,
-    pc: u16, // Program counter
-    sp: u16, // Stack pointer
+    pub a: u8,
+    pub b: u8,
+    pub c: u8,
+    pub d: u8,
+    pub e: u8,
+    pub f: u8,
+    pub h: u8,
+    pub l: u8,
+    pub pc: u16, // Program counter
+    pub sp: u16, // Stack pointer
 }
 
 impl Cpu {
