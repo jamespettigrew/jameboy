@@ -38,6 +38,12 @@ pub fn u16_to_u8(val: u16) -> (u8, u8) {
     (msb, lsb)
 }
 
+/// Returns a boolean indicating whether a half-carry will occur during the addition of a and b.
+pub fn half_carried_add8(a: u8, b: u8) -> bool {
+    // https://robdor.com/2016/08/10/gameboy-emulator-half-carry-flag/
+    ((a & 0xF) + (b & 0xF) & 0x10) == 0x10
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -58,5 +64,14 @@ mod tests {
         assert_eq!((0x00, 0xFF), u16_to_u8(0x00FF));
         assert_eq!((0xFF, 0x00), u16_to_u8(0xFF00));
         assert_eq!((0x4A, 0x2F), u16_to_u8(0x4A2F));
+    }
+
+    #[test]
+    fn test_half_carried_add8() {
+        assert_eq!(false, half_carried_add8(0b00000000, 0b00000000));
+        assert_eq!(false, half_carried_add8(0b00000000, 0b00000001));
+        assert_eq!(false, half_carried_add8(0b00000001, 0b00000000));
+        assert_eq!(true, half_carried_add8(0b00001010, 0b00001100));
+        assert_eq!(true, half_carried_add8(0b00000110, 0b00001100));
     }
 }

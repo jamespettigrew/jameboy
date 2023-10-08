@@ -1,6 +1,6 @@
 use crate::cpu::{Cpu, Register, RegisterWide, WriteFlags};
 use crate::memory::{Address, Memory};
-use crate::util::{self, u8_to_u16};
+use crate::util::{self, half_carried_add8, u8_to_u16};
 
 type OpcodeHandler = fn(cpu: &mut Cpu, memory: &mut Memory);
 
@@ -8,7 +8,7 @@ type OpcodeHandler = fn(cpu: &mut Cpu, memory: &mut Memory);
 pub struct Opcode {
     pub mnemonic: String,
     pub size_bytes: u8,
-    handler: Option<OpcodeHandler>,
+    pub handler: Option<OpcodeHandler>,
 }
 
 impl Opcode {
@@ -944,32 +944,32 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x90 => Some(Opcode {
             mnemonic: "SUB A, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sub_r8(cpu, Register::B)),
         }),
         0x91 => Some(Opcode {
             mnemonic: "SUB A, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sub_r8(cpu, Register::C)),
         }),
         0x92 => Some(Opcode {
             mnemonic: "SUB A, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sub_r8(cpu, Register::D)),
         }),
         0x93 => Some(Opcode {
             mnemonic: "SUB A, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sub_r8(cpu, Register::E)),
         }),
         0x94 => Some(Opcode {
             mnemonic: "SUB A, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sub_r8(cpu, Register::H)),
         }),
         0x95 => Some(Opcode {
             mnemonic: "SUB A, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sub_r8(cpu, Register::L)),
         }),
         0x96 => Some(Opcode {
             mnemonic: "SUB A, [HL]".to_string(),
@@ -979,37 +979,37 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x97 => Some(Opcode {
             mnemonic: "SUB A, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sub_r8(cpu, Register::A)),
         }),
         0x98 => Some(Opcode {
             mnemonic: "SBC A, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sbc_r8(cpu, Register::B)),
         }),
         0x99 => Some(Opcode {
             mnemonic: "SBC A, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sbc_r8(cpu, Register::C)),
         }),
         0x9A => Some(Opcode {
             mnemonic: "SBC A, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sbc_r8(cpu, Register::D)),
         }),
         0x9B => Some(Opcode {
             mnemonic: "SBC A, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sbc_r8(cpu, Register::E)),
         }),
         0x9C => Some(Opcode {
             mnemonic: "SBC A, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sbc_r8(cpu, Register::H)),
         }),
         0x9D => Some(Opcode {
             mnemonic: "SBC A, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sbc_r8(cpu, Register::L)),
         }),
         0x9E => Some(Opcode {
             mnemonic: "SBC A, [HL]".to_string(),
@@ -1019,7 +1019,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x9F => Some(Opcode {
             mnemonic: "SBC A, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| sbc_r8(cpu, Register::A)),
         }),
         0xA0 => Some(Opcode {
             mnemonic: "AND A, B".to_string(),
@@ -2793,27 +2793,27 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
 
 fn add_r8(cpu: &mut Cpu, r: Register) {
     let a = cpu.read_register(Register::A);
-    let r = cpu.read_register(r);
-    let (result, overflowed) = a.overflowing_add(r);
+    let b = cpu.read_register(r);
+    let (result, overflowed) = a.overflowing_add(b);
     cpu.write_register(Register::A, result);
     cpu.write_flags(WriteFlags {
         zero: Some(result == 0),
         subtract: Some(false),
-        half_carry: Some((a & 0xF) + (r & 0xF) > 0xF),
+        half_carry: Some(half_carried_add8(a, b)),
         carry: Some(overflowed),
     });
 }
 
 fn adc_r8(cpu: &mut Cpu, r: Register) {
     let a = cpu.read_register(Register::A);
-    let r = cpu.read_register(r);
-    let (result, overflowed) = a.overflowing_add(r);
+    let b = cpu.read_register(r);
+    let (result, overflowed) = a.overflowing_add(b);
     let (result, with_carry_overflowed) = result.overflowing_add(1);
     cpu.write_register(Register::A, result);
     cpu.write_flags(WriteFlags {
         zero: Some(result == 0),
         subtract: Some(false),
-        half_carry: Some((a & 0xF) + (r & 0xF) > 0xF),
+        half_carry: Some(half_carried_add8(a, b + 1)),
         carry: Some(overflowed || with_carry_overflowed),
     });
 }
@@ -2967,6 +2967,45 @@ fn pop(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
     cpu.write_register_wide(RegisterWide::SP, sp + 2);
     let value = u8_to_u16(msb, lsb);
     cpu.write_register_wide(r, value);
+}
+
+fn sub_r8(cpu: &mut Cpu, r: Register) {
+    // a - b = a + (-b)
+    //
+    // -b = 255 - b
+    // 255 - b === !b
+    //
+    // a -b = a + !b
+    let a = cpu.read_register(Register::A);
+    let b = !cpu.read_register(r);
+    let (result, overflowed) = a.overflowing_add(b);
+    cpu.write_register(Register::A, result);
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(true),
+        half_carry: Some(half_carried_add8(a, b)),
+        carry: Some(overflowed),
+    });
+}
+
+fn sbc_r8(cpu: &mut Cpu, r: Register) {
+    // a - b = a + (-b)
+    //
+    // -b = 255 - b
+    // 255 - b === !b
+    //
+    // a -b = a + !b
+    let a = cpu.read_register(Register::A);
+    let (b, _) = cpu.read_register(r).overflowing_add(1);
+    let b = !b;
+    let (result, overflowed) = a.overflowing_add(b);
+    cpu.write_register(Register::A, result);
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(true),
+        half_carry: Some(half_carried_add8(a, b)),
+        carry: Some(overflowed),
+    });
 }
 
 fn xor_r8(cpu: &mut Cpu, register: Register) {
