@@ -1,6 +1,6 @@
 use crate::cpu::{Cpu, Register, RegisterWide, WriteFlags};
 use crate::memory::{Address, Memory};
-use crate::util::{self, half_carried_add8, u8_to_u16};
+use crate::util::{self, half_carried_add8, half_carried_sub8, u8_to_u16};
 
 type OpcodeHandler = fn(cpu: &mut Cpu, memory: &mut Memory);
 
@@ -2846,20 +2846,20 @@ fn bit_r8(cpu: &mut Cpu, b: Bit, r: Register) {
 }
 
 fn cp_r8(cpu: &mut Cpu, r: Register) {
-    let a = cpu.read_register(Register::A);
-    let r = cpu.read_register(r);
-    let (result, overflowed) = a.overflowing_sub(r);
-    cpu.write_flags(WriteFlags {
-        zero: Some(result == 0),
-        subtract: Some(false),
-        half_carry: Some((a & 0xF) + (r & 0xF) > 0xF),
-        carry: Some(overflowed),
-    });
+    sub_r8(cpu, r);
 }
 
 fn dec_r8(cpu: &mut Cpu, r: Register) {
-    let value = cpu.read_register(r);
-    cpu.write_register(r, value - 1);
+    let a = cpu.read_register(r);
+    let (result, _) = a.overflowing_sub(1);
+    cpu.write_register(r, result);
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(true),
+        half_carry: Some(half_carried_sub8(a, 1)),
+        carry: None,
+    });
+    cpu.write_register(r, result);
 }
 
 fn dec_r16(cpu: &mut Cpu, r: RegisterWide) {
@@ -2983,40 +2983,28 @@ fn pop(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
 }
 
 fn sub_r8(cpu: &mut Cpu, r: Register) {
-    // a - b = a + (-b)
-    //
-    // -b = 255 - b
-    // 255 - b === !b
-    //
-    // a -b = a + !b
     let a = cpu.read_register(Register::A);
-    let b = !cpu.read_register(r);
-    let (result, overflowed) = a.overflowing_add(b);
+    let b = cpu.read_register(r);
+    let (result, overflowed) = a.overflowing_sub(b);
     cpu.write_register(Register::A, result);
     cpu.write_flags(WriteFlags {
         zero: Some(result == 0),
         subtract: Some(true),
-        half_carry: Some(half_carried_add8(a, b)),
+        half_carry: Some(half_carried_sub8(a, b)),
         carry: Some(overflowed),
     });
 }
 
 fn sbc_r8(cpu: &mut Cpu, r: Register) {
-    // a - b = a + (-b)
-    //
-    // -b = 255 - b
-    // 255 - b === !b
-    //
-    // a -b = a + !b
     let a = cpu.read_register(Register::A);
-    let (b, _) = cpu.read_register(r).overflowing_add(1);
-    let b = !b;
-    let (result, overflowed) = a.overflowing_add(b);
+    let carry_bit = cpu.read_flags().carry as u8;
+    let (b, _) = cpu.read_register(r).overflowing_add(carry_bit);
+    let (result, overflowed) = a.overflowing_sub(b);
     cpu.write_register(Register::A, result);
     cpu.write_flags(WriteFlags {
         zero: Some(result == 0),
         subtract: Some(true),
-        half_carry: Some(half_carried_add8(a, b)),
+        half_carry: Some(half_carried_sub8(a, b)),
         carry: Some(overflowed),
     });
 }

@@ -47,6 +47,14 @@ pub fn half_carried_add8(a: u8, b: u8) -> bool {
     (result & 0x10) == 0x10
 }
 
+pub fn half_carried_sub8(a: u8, b: u8) -> bool {
+    // https://robdor.com/2016/08/10/gameboy-emulator-half-carry-flag/
+    let a = a & 0xF;
+    let b = b & 0xF;
+    let (result, _) = a.overflowing_sub(b);
+    (result & 0x10) == 0x10
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -76,5 +84,14 @@ mod tests {
         assert_eq!(false, half_carried_add8(0b00000001, 0b00000000));
         assert_eq!(true, half_carried_add8(0b00001010, 0b00001100));
         assert_eq!(true, half_carried_add8(0b00000110, 0b00001100));
+    }
+
+    #[test]
+    fn test_half_carried_sub8() {
+        assert_eq!(false, half_carried_sub8(0b00000000, 0b00000000));
+        assert_eq!(false, half_carried_sub8(0b00000001, 0b00000000));
+        assert_eq!(true, half_carried_sub8(0b00000000, 0b00000001));
+        assert_eq!(true, half_carried_sub8(0b00000000, 0b00001000));
+        assert_eq!(true, half_carried_sub8(0b00000110, 0b00001100));
     }
 }
