@@ -2868,8 +2868,15 @@ fn dec_r16(cpu: &mut Cpu, r: RegisterWide) {
 }
 
 fn inc_r8(cpu: &mut Cpu, r: Register) {
-    let value = cpu.read_register(r);
-    cpu.write_register(r, value + 1);
+    let a = cpu.read_register(r);
+    let (result, _) = a.overflowing_add(1);
+    cpu.write_register(r, result);
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(false),
+        half_carry: Some(half_carried_add8(a, 1)),
+        carry: None,
+    });
 }
 
 fn inc_r16(cpu: &mut Cpu, r: RegisterWide) {
