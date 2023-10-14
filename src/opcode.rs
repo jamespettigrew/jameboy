@@ -1199,7 +1199,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xC3 => Some(Opcode {
             mnemonic: "JP a16".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let pc = cpu.read_register_wide(RegisterWide::PC);
+                let msb = memory.read(Address(pc - 1));
+                let lsb = memory.read(Address(pc - 2));
+                let nn = u8_to_u16(msb, lsb);
+                cpu.write_register_wide(RegisterWide::PC, nn);
+            }),
         }),
         0xC4 => Some(Opcode {
             mnemonic: "CALL NZ, a16".to_string(),
