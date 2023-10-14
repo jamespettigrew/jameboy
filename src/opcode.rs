@@ -36,7 +36,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x02 => Some(Opcode {
             mnemonic: "LD [BC], A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_indirect_r16_r8(
+                    cpu,
+                    memory,
+                    RegisterWide::BC,
+                    Register::A,
+                    IndirectAddressingMode::Retain,
+                )
+            }),
         }),
         0x03 => Some(Opcode {
             mnemonic: "INC BC".to_string(),
@@ -135,7 +143,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x12 => Some(Opcode {
             mnemonic: "LD [DE], A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                ld_indirect_r16_r8(
+                    cpu,
+                    memory,
+                    RegisterWide::DE,
+                    Register::A,
+                    IndirectAddressingMode::Retain,
+                )
+            }),
         }),
         0x13 => Some(Opcode {
             mnemonic: "INC DE".to_string(),
