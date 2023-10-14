@@ -73,8 +73,8 @@ pub fn decode(byte: u8) -> Option<Opcode> {
                 let address = util::u8_to_u16(msb, lsb);
                 let sp = cpu.read_register_wide(RegisterWide::SP);
                 let (sp_msb, sp_lsb) = util::u16_to_u8(sp);
-                memory.write(Address(address), lsb);
-                memory.write(Address(address + 1), msb);
+                memory.write(Address(address), sp_lsb);
+                memory.write(Address(address + 1), sp_msb);
             }),
         }),
         0x09 => Some(Opcode {
