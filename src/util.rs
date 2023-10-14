@@ -41,7 +41,10 @@ pub fn u16_to_u8(val: u16) -> (u8, u8) {
 /// Returns a boolean indicating whether a half-carry will occur during the addition of a and b.
 pub fn half_carried_add8(a: u8, b: u8) -> bool {
     // https://robdor.com/2016/08/10/gameboy-emulator-half-carry-flag/
-    ((a & 0xF) + (b & 0xF) & 0x10) == 0x10
+    let a = a & 0xF;
+    let b = b & 0xF;
+    let (result, _) = a.overflowing_add(b);
+    (result & 0x10) == 0x10
 }
 
 #[cfg(test)]

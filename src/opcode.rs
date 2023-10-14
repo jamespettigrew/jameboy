@@ -2812,15 +2812,15 @@ fn add_r8(cpu: &mut Cpu, r: Register) {
 
 fn adc_r8(cpu: &mut Cpu, r: Register) {
     let a = cpu.read_register(Register::A);
-    let b = cpu.read_register(r);
+    let carry_bit = cpu.read_flags().carry as u8;
+    let (b, _) = cpu.read_register(r).overflowing_add(carry_bit);
     let (result, overflowed) = a.overflowing_add(b);
-    let (result, with_carry_overflowed) = result.overflowing_add(1);
     cpu.write_register(Register::A, result);
     cpu.write_flags(WriteFlags {
         zero: Some(result == 0),
         subtract: Some(false),
         half_carry: Some(half_carried_add8(a, b + 1)),
-        carry: Some(overflowed || with_carry_overflowed),
+        carry: Some(overflowed),
     });
 }
 
