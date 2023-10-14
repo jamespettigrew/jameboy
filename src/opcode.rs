@@ -1,6 +1,6 @@
 use crate::cpu::{Cpu, Register, RegisterWide, WriteFlags};
 use crate::memory::{Address, Memory};
-use crate::util::{self, half_carried_add8, half_carried_sub8, u8_to_u16};
+use crate::util::{self, half_carried_add8, half_carried_sub8, u16_to_u8, u8_to_u16};
 
 type OpcodeHandler = fn(cpu: &mut Cpu, memory: &mut Memory);
 
@@ -1276,7 +1276,12 @@ pub fn decode(byte: u8) -> Option<Opcode> {
                 let msb = memory.read(Address(pc - 1));
                 let lsb = memory.read(Address(pc - 2));
                 let address = u8_to_u16(msb, lsb);
-                cpu.write_register_wide(RegisterWide::SP, address);
+                let sp = cpu.read_register_wide(RegisterWide::SP);
+                let new_sp = sp - 2;
+                let (msb, lsb) = u16_to_u8(pc);
+                memory.write(Address(new_sp), lsb);
+                memory.write(Address(new_sp + 1), msb);
+                cpu.write_register_wide(RegisterWide::SP, new_sp);
                 cpu.write_register_wide(RegisterWide::PC, address);
             }),
         }),
