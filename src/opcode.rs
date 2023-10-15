@@ -1202,7 +1202,18 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xBE => Some(Opcode {
             mnemonic: "CP A, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let a = cpu.read_register(Register::A);
+                let hl = cpu.read_register_wide(RegisterWide::HL);
+                let b = memory.read(Address(hl));
+                let (result, overflowed) = a.overflowing_sub(b);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(result == 0),
+                    subtract: Some(true),
+                    half_carry: Some(half_carried_sub8(a, b)),
+                    carry: Some(overflowed),
+                });
+            }),
         }),
         0xBF => Some(Opcode {
             mnemonic: "CP A, A".to_string(),
