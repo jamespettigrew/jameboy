@@ -1120,32 +1120,32 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xB0 => Some(Opcode {
             mnemonic: "OR A, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| or_r8(cpu, Register::B)),
         }),
         0xB1 => Some(Opcode {
             mnemonic: "OR A, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| or_r8(cpu, Register::C)),
         }),
         0xB2 => Some(Opcode {
             mnemonic: "OR A, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| or_r8(cpu, Register::D)),
         }),
         0xB3 => Some(Opcode {
             mnemonic: "OR A, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| or_r8(cpu, Register::E)),
         }),
         0xB4 => Some(Opcode {
             mnemonic: "OR A, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| or_r8(cpu, Register::H)),
         }),
         0xB5 => Some(Opcode {
             mnemonic: "OR A, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| or_r8(cpu, Register::L)),
         }),
         0xB6 => Some(Opcode {
             mnemonic: "OR A, [HL]".to_string(),
@@ -1155,7 +1155,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xB7 => Some(Opcode {
             mnemonic: "OR A, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| or_r8(cpu, Register::A)),
         }),
         0xB8 => Some(Opcode {
             mnemonic: "CP A, B".to_string(),
@@ -2970,6 +2970,28 @@ fn ld_r16_n16(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
     cpu.write_register_wide(r, value);
 }
 
+fn or_r8(cpu: &mut Cpu, r: Register) {
+    let a = cpu.read_register(Register::A);
+    let b = cpu.read_register(r);
+    let result = a | b;
+    cpu.write_register(Register::A, result);
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(false),
+        half_carry: Some(false),
+        carry: Some(false),
+    });
+}
+
+fn pop(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
+    let sp = cpu.read_register_wide(RegisterWide::SP);
+    let lsb = memory.read(Address(sp));
+    let msb = memory.read(Address(sp + 1));
+    cpu.write_register_wide(RegisterWide::SP, sp + 2);
+    let value = u8_to_u16(msb, lsb);
+    cpu.write_register_wide(r, value);
+}
+
 fn push(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
     let value = cpu.read_register_wide(r);
     let (msb, lsb) = util::u16_to_u8(value);
@@ -2992,15 +3014,6 @@ fn rl_r8(cpu: &mut Cpu, r: Register) {
     };
 
     cpu.write_register(r, register_value);
-}
-
-fn pop(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
-    let sp = cpu.read_register_wide(RegisterWide::SP);
-    let lsb = memory.read(Address(sp));
-    let msb = memory.read(Address(sp + 1));
-    cpu.write_register_wide(RegisterWide::SP, sp + 2);
-    let value = u8_to_u16(msb, lsb);
-    cpu.write_register_wide(r, value);
 }
 
 fn sub_r8(cpu: &mut Cpu, r: Register) {
