@@ -1040,32 +1040,32 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xA0 => Some(Opcode {
             mnemonic: "AND A, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| and_r8(cpu, Register::B)),
         }),
         0xA1 => Some(Opcode {
             mnemonic: "AND A, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| and_r8(cpu, Register::C)),
         }),
         0xA2 => Some(Opcode {
             mnemonic: "AND A, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| and_r8(cpu, Register::D)),
         }),
         0xA3 => Some(Opcode {
             mnemonic: "AND A, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| and_r8(cpu, Register::E)),
         }),
         0xA4 => Some(Opcode {
             mnemonic: "AND A, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| and_r8(cpu, Register::H)),
         }),
         0xA5 => Some(Opcode {
             mnemonic: "AND A, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| and_r8(cpu, Register::L)),
         }),
         0xA6 => Some(Opcode {
             mnemonic: "AND A, [HL]".to_string(),
@@ -1075,7 +1075,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xA7 => Some(Opcode {
             mnemonic: "AND A, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| and_r8(cpu, Register::A)),
         }),
         0xA8 => Some(Opcode {
             mnemonic: "XOR A, B".to_string(),
@@ -2842,6 +2842,19 @@ fn adc_r8(cpu: &mut Cpu, r: Register) {
         subtract: Some(false),
         half_carry: Some(half_carried_add8(a, b + 1)),
         carry: Some(overflowed),
+    });
+}
+
+fn and_r8(cpu: &mut Cpu, r: Register) {
+    let a = cpu.read_register(Register::A);
+    let b = cpu.read_register(r);
+    let result = a & b;
+    cpu.write_register(Register::A, result);
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(false),
+        half_carry: Some(true),
+        carry: Some(false),
     });
 }
 
