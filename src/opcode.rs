@@ -2852,7 +2852,7 @@ fn add_r8(cpu: &mut Cpu, r: Register) {
 fn adc_r8(cpu: &mut Cpu, r: Register) {
     let a = cpu.read_register(Register::A);
     let carry_bit = cpu.read_flags().carry as u8;
-    let (b, _) = cpu.read_register(r).overflowing_add(carry_bit);
+    let b = cpu.read_register(r).wrapping_add(carry_bit);
     let (result, overflowed) = a.overflowing_add(b);
     cpu.write_register(Register::A, result);
     cpu.write_flags(WriteFlags {
@@ -2943,7 +2943,7 @@ fn dec_r16(cpu: &mut Cpu, r: RegisterWide) {
 
 fn inc_r8(cpu: &mut Cpu, r: Register) {
     let a = cpu.read_register(r);
-    let (result, _) = a.overflowing_add(1);
+    let result = a.wrapping_add(1);
     cpu.write_register(r, result);
     cpu.write_flags(WriteFlags {
         zero: Some(result == 0),
@@ -3085,7 +3085,7 @@ fn sub_r8(cpu: &mut Cpu, r: Register) {
 fn sbc_r8(cpu: &mut Cpu, r: Register) {
     let a = cpu.read_register(Register::A);
     let carry_bit = cpu.read_flags().carry as u8;
-    let (b, _) = cpu.read_register(r).overflowing_add(carry_bit);
+    let b = cpu.read_register(r).wrapping_add(carry_bit);
     let (result, overflowed) = a.overflowing_sub(b);
     cpu.write_register(Register::A, result);
     cpu.write_flags(WriteFlags {

@@ -43,16 +43,15 @@ pub fn half_carried_add8(a: u8, b: u8) -> bool {
     // https://robdor.com/2016/08/10/gameboy-emulator-half-carry-flag/
     let a = a & 0xF;
     let b = b & 0xF;
-    let (result, _) = a.overflowing_add(b);
-    (result & 0x10) == 0x10
+    (a.wrapping_add(b) & 0x10) == 0x10
 }
 
+/// Returns a boolean indicating whether a half-carry will occur during the subtraction of b from a.
 pub fn half_carried_sub8(a: u8, b: u8) -> bool {
     // https://robdor.com/2016/08/10/gameboy-emulator-half-carry-flag/
     let a = a & 0xF;
     let b = b & 0xF;
-    let (result, _) = a.overflowing_sub(b);
-    (result & 0x10) == 0x10
+    (a.wrapping_sub(b) & 0x10) == 0x10
 }
 
 #[cfg(test)]
