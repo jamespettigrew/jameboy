@@ -910,7 +910,19 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x86 => Some(Opcode {
             mnemonic: "ADD A, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let a = cpu.read_register(Register::A);
+                let hl = cpu.read_register_wide(RegisterWide::HL);
+                let b = memory.read(Address(hl));
+                let (result, overflowed) = a.overflowing_add(b);
+                cpu.write_register(Register::A, result);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(result == 0),
+                    subtract: Some(false),
+                    half_carry: Some(half_carried_add8(a, b)),
+                    carry: Some(overflowed),
+                });
+            }),
         }),
         0x87 => Some(Opcode {
             mnemonic: "ADD A, A".to_string(),
