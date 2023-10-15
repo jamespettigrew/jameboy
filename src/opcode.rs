@@ -2892,7 +2892,15 @@ fn bit_r8(cpu: &mut Cpu, b: Bit, r: Register) {
 }
 
 fn cp_r8(cpu: &mut Cpu, r: Register) {
-    sub_r8(cpu, r);
+    let a = cpu.read_register(Register::A);
+    let b = cpu.read_register(r);
+    let (result, overflowed) = a.overflowing_sub(b);
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(true),
+        half_carry: Some(half_carried_sub8(a, b)),
+        carry: Some(overflowed),
+    });
 }
 
 fn dec_r8(cpu: &mut Cpu, r: Register) {
