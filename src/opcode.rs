@@ -1289,24 +1289,19 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xCC => Some(Opcode {
             mnemonic: "CALL Z, a16".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let zero = cpu.read_flags().zero;
+                if !zero {
+                    return;
+                }
+
+                call_a16(cpu, memory);
+            }),
         }),
         0xCD => Some(Opcode {
             mnemonic: "CALL a16".to_string(),
             size_bytes: 3,
-            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
-                let pc = cpu.read_register_wide(RegisterWide::PC);
-                let msb = memory.read(Address(pc - 1));
-                let lsb = memory.read(Address(pc - 2));
-                let address = u8_to_u16(msb, lsb);
-                let sp = cpu.read_register_wide(RegisterWide::SP);
-                let new_sp = sp - 2;
-                let (msb, lsb) = u16_to_u8(pc);
-                memory.write(Address(new_sp), lsb);
-                memory.write(Address(new_sp + 1), msb);
-                cpu.write_register_wide(RegisterWide::SP, new_sp);
-                cpu.write_register_wide(RegisterWide::PC, address);
-            }),
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| call_a16(cpu, memory)),
         }),
         0xCE => Some(Opcode {
             mnemonic: "ADC A, n8".to_string(),
@@ -2900,6 +2895,20 @@ fn bit_r8(cpu: &mut Cpu, b: Bit, r: Register) {
         half_carry: Some(true),
         ..Default::default()
     })
+}
+
+fn call_a16(cpu: &mut Cpu, memory: &mut Memory) {
+    let pc = cpu.read_register_wide(RegisterWide::PC);
+    let msb = memory.read(Address(pc - 1));
+    let lsb = memory.read(Address(pc - 2));
+    let address = u8_to_u16(msb, lsb);
+    let sp = cpu.read_register_wide(RegisterWide::SP);
+    let new_sp = sp - 2;
+    let (msb, lsb) = u16_to_u8(pc);
+    memory.write(Address(new_sp), lsb);
+    memory.write(Address(new_sp + 1), msb);
+    cpu.write_register_wide(RegisterWide::SP, new_sp);
+    cpu.write_register_wide(RegisterWide::PC, address);
 }
 
 fn cp_r8(cpu: &mut Cpu, r: Register) {
