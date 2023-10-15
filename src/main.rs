@@ -2,14 +2,16 @@ mod cpu;
 mod disassembly;
 mod memory;
 mod opcode;
+mod ppu;
 mod util;
 
 use crate::cpu::{Cpu, Register, RegisterWide, WriteFlags};
 use crate::disassembly::Instruction;
 use crate::memory::{Address, Memory};
+use crate::ppu::Ppu;
 
 use eframe::egui;
-use egui::Align;
+use egui::{Align, ColorImage};
 use egui_extras::{Column, TableBuilder};
 use std::env;
 use std::fs::File;
@@ -27,6 +29,7 @@ struct Jameboy {
     cpu: Cpu,
     memory: Memory,
     prefixed: bool,
+    ppu: Ppu,
     state: State,
 }
 
@@ -36,6 +39,7 @@ impl Jameboy {
             cpu: Cpu::init(),
             memory: Memory::init(),
             prefixed: false,
+            ppu: Ppu::init(),
             state: State::Paused,
         }
     }
@@ -62,6 +66,7 @@ impl Jameboy {
         self.cpu
             .write_register_wide(RegisterWide::PC, pc + opcode.size_bytes as u16);
         opcode.execute(&mut self.cpu, &mut self.memory);
+        self.ppu.step(&mut self.memory);
     }
 }
 
@@ -280,6 +285,16 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruct
                         }
                     });
                 });
+        });
+
+        let image = &jameboy.ppu.image_buffer;
+        let size = (image.width() as usize, image.height() as usize);
+        let image = ColorImage::from_gray(size.into(), image);
+        let texture = ctx.load_texture("LCD", image, egui::TextureOptions::default());
+
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.heading("Display");
+            ui.image(&texture);
         });
     });
 }

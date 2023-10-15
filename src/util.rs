@@ -54,6 +54,14 @@ pub fn half_carried_sub8(a: u8, b: u8) -> bool {
     (a.wrapping_sub(b) & 0x10) == 0x10
 }
 
+pub fn bit(x: u8, bit: u8) -> u8 {
+    x & (1 << bit)
+}
+
+pub fn set_bits(original: u8, new: u8, mask: u8) -> u8 {
+    (original & !mask) | (new & mask)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

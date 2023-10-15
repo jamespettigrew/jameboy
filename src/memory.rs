@@ -20,6 +20,12 @@ impl Memory {
         self.0[usize::from(address.0)]
     }
 
+    pub fn read_range(&self, address: Address, count: u8) -> &[u8] {
+        let start = usize::from(address.0);
+
+        &self.0[start..start + count as usize]
+    }
+
     pub fn write(&mut self, address: Address, value: u8) {
         self.0[usize::from(address.0)] = value;
     }
