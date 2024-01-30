@@ -247,7 +247,7 @@ impl Ppu {
                 if self.dot == DOTS_PER_SCANLINE {
                     self.dot = 0;
                     memory.write(Address(ADDRESS_LY), ly + 1);
-                    let ppu_mode = if ly as usize > SCANLINES_PER_FRAME - SCANLINES_PER_VERTICAL_BLANK {
+                    let ppu_mode = if ly as usize >= SCANLINES_PER_FRAME - SCANLINES_PER_VERTICAL_BLANK {
                         PpuMode::VerticalBlank
                     } else {
                         PpuMode::OamScan
