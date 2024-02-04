@@ -86,9 +86,12 @@ fn main() {
         ..Default::default()
     };
 
-    let bootstrap_rom = open_rom(Path::new("./roms/bootstrap.gb"));
     let mut jameboy = Jameboy::init();
-    map_rom_into_memory(&bootstrap_rom, &mut jameboy.memory);
+    let bootstrap_rom = open_rom(Path::new("./roms/bootstrap.gb"));
+    jameboy.memory.load_bootstrap_rom(&bootstrap_rom);
+
+    let rom = open_rom(Path::new("./roms/logo.gb"));
+    map_rom_into_memory(&rom, &mut jameboy.memory);
     let disassembly = disassembly::disassemble(&bootstrap_rom);
 
     eframe::run_simple_native("jameboy", options, move |ctx, _frame| {
