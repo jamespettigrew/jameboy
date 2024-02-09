@@ -291,6 +291,7 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruct
         });
 
         let image = &jameboy.ppu.image_buffer;
+        let image = &image::imageops::resize(image, image.width() * 3, image.height() * 3, image::imageops::FilterType::Nearest);
         let size = (image.width() as usize, image.height() as usize);
         let image = ColorImage::from_gray(size.into(), image);
         let texture = ctx.load_texture("LCD", image, egui::TextureOptions::default());
