@@ -94,11 +94,20 @@ fn main() {
     map_rom_into_memory(&rom, &mut jameboy.memory);
     let disassembly = disassembly::disassemble(&bootstrap_rom);
 
+    let goal_render_ms = 16_u128;
     eframe::run_simple_native("jameboy", options, move |ctx, _frame| {
-        ctx.request_repaint(); // Run as fast as possible
+        ctx.request_repaint();
         render(ctx, &mut jameboy, &disassembly);
-        if let State::Running = jameboy.state {
-            jameboy.step();
+
+        let last_render = std::time::Instant::now();
+        while std::time::Instant::now()
+            .duration_since(last_render)
+            .as_micros()
+            < goal_render_ms
+        {
+            if let State::Running = jameboy.state {
+                jameboy.step();
+            }
         }
     });
 }
