@@ -1396,7 +1396,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             size_bytes: 2,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
                 let pc = cpu.read_register_wide(RegisterWide::PC);
-                let imm = memory.read(Address(pc));
+                let imm = memory.read(Address(pc - 1));
                 let address = u8_to_u16(0xFF, imm);
                 let a = cpu.read_register(Register::A);
                 memory.write(Address(address), a);
