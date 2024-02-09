@@ -121,7 +121,6 @@ fn doctor(rom_path: &Path) -> std::io::Result<()> {
     jameboy.cpu.write_register(Register::E, 0xD8);
     jameboy.cpu.write_register(Register::H, 0x01);
     jameboy.cpu.write_register(Register::L, 0x4D);
-    jameboy.cpu.write_register(Register::L, 0x4D);
     jameboy.cpu.write_flags(WriteFlags {
         zero: Some(true),
         subtract: None,
