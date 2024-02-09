@@ -183,8 +183,8 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             size_bytes: 2,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
                 let mut pc = cpu.read_register_wide(RegisterWide::PC);
-                let imm = memory.read(Address(pc - 1));
-                pc = pc.wrapping_add_signed(imm as i16);
+                let imm = memory.read(Address(pc - 1)) as i8;
+                pc = pc.wrapping_add_signed(imm.into());
                 cpu.write_register_wide(RegisterWide::PC, pc);
             }),
         }),
@@ -299,7 +299,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
                 }
 
                 let mut pc = cpu.read_register_wide(RegisterWide::PC);
-                let imm = memory.read(Address(pc - 1));
+                let imm = memory.read(Address(pc - 1)) as i8;
                 pc = pc.wrapping_add_signed(imm as i16);
                 cpu.write_register_wide(RegisterWide::PC, pc);
             }),
