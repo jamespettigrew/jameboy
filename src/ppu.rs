@@ -12,6 +12,7 @@ const PIXELS_PER_SCANLINE: u8 = 160;
 
 const ADDRESS_LCDC_REGISTER: u16 = 0xFF40;
 const ADDRESS_LCD_STATUS_REGISTER: u16 = 0xFF41;
+const ADDRESS_SCY: u16 = 0xFF42;
 const ADDRESS_LY: u16 = 0xFF44;
 const ADDRESS_BGP: u16 = 0xFF47;
 
@@ -197,7 +198,7 @@ impl Ppu {
                 }
             },
             PpuMode::Drawing => {
-                let scy = 0;
+                let scy = memory.read(Address(ADDRESS_SCY)) as u16;
 
                 match &self.background_fetch_step {
                     FetchStep::Paused => {
@@ -205,26 +206,25 @@ impl Ppu {
                     }
                     FetchStep::FetchTileNumber => {
                         let tile_map_area = read_bg_tile_map_area(memory);
-                        let tile_number_address = tile_map_area as u16 + self.x_position as u16;
+                        let offset = 32 * ((ly as u16 + scy) & 0xFF) / 8;
+                        let tile_number_address = tile_map_area as u16 + self.x_position as u16 + offset;
                         // TODO: Account for scroll
                         // TODO: Are we fetching BG or window tile?
-                        // let scy = 0;
                         // let scx = 0;
-                        // let offset = 32 ** ((ly + scy) & 0xFF) / 8;
                         
                         let tile_number = memory.read(Address(tile_number_address));
                         self.background_fetch_step = FetchStep::FetchTileLow(tile_number);
                     }
                     FetchStep::FetchTileLow(tile_number) => {
                         let tile_data_area = 0x8000; // Could also be 0x8800, depending upon LCDC bit 4;
-                        let offset =  2 * ((ly + scy) % 8);
+                        let offset =  2 * ((ly as u16 + scy) % 8);
                         let address = Address(tile_data_area as u16 + (*tile_number * 16) as u16 + offset as u16);
                         let tile_data_low = memory.read(address);
                         self.background_fetch_step = FetchStep::FetchTileHigh(*tile_number, tile_data_low);
                     },
                     FetchStep::FetchTileHigh(tile_number, tile_data_low) => {
                         let tile_data_area = 0x8000; // Could also be 0x8800, depending upon LCDC bit 4;
-                        let offset =  2 * ((ly + scy) % 8);
+                        let offset =  2 * ((ly as u16 + scy) % 8);
                         let address = Address(tile_data_area as u16 + (*tile_number * 16) as u16 + offset as u16 + 1);
                         let tile_data_high = memory.read(address);
                         let pixel_colours = line_bytes_to_pixel_colours(tile_data_high, *tile_data_low);
@@ -249,24 +249,23 @@ impl Ppu {
                     },
                     FetchStep::FetchTileNumber => {
                         let tile_map_area = read_bg_tile_map_area(memory);
-                        let tile_number_address = tile_map_area as u16 + self.x_position as u16;
+                        let offset = 32 * ((ly as u16 + scy) & 0xFF) / 8;
+                        let tile_number_address = tile_map_area as u16 + self.x_position as u16 + offset as u16;
                         // TODO: Account for scroll
                         // TODO: Are we fetching BG or window tile?
-                        // let scy = 0;
                         // let scx = 0;
-                        // let offset = 32 ** ((ly + scy) & 0xFF) / 8;
                         
                         let tile_number = memory.read(Address(tile_number_address));
                         self.sprite_fetch_step = FetchStep::FetchTileLow(tile_number);
                     }
                     FetchStep::FetchTileLow(tile_number) => {
-                        let offset =  2 * ((ly + scy) % 8);
+                        let offset =  2 * ((ly as u16 + scy) % 8);
                         let address = Address(0x8000 + (*tile_number * 16) as u16 + offset as u16);
                         let tile_data_low = memory.read(address);
                         self.sprite_fetch_step = FetchStep::FetchTileHigh(*tile_number, tile_data_low);
                     },
                     FetchStep::FetchTileHigh(tile_number, tile_data_low) => {
-                        let offset =  2 * ((ly + scy) % 8);
+                        let offset =  2 * ((ly as u16 + scy) % 8);
                         let address = Address(0x8000 + (*tile_number * 16) as u16 + offset as u16 + 1);
                         let tile_data_high = memory.read(address);
                         let pixel_colours = line_bytes_to_pixel_colours(tile_data_high, *tile_data_low);
