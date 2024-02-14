@@ -176,7 +176,21 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x17 => Some(Opcode {
             mnemonic: "RLA".to_string(),
             size_bytes: 1,
-            handler: Some(|cpu: &mut Cpu, _| rl_r8(cpu, Register::A)),
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let mut value = cpu.read_register(Register::A);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(false),
+                    subtract: Some(false),
+                    half_carry: Some(false),
+                    carry: Some(value & 0b1000_0000 != 0),
+                });
+                value >>= 1;
+                if cpu.read_flags().carry {
+                    value |= 0b0000_0001
+                };
+
+                cpu.write_register(Register::A, value);
+            })
         }),
         0x18 => Some(Opcode {
             mnemonic: "JR e8".to_string(),
@@ -230,19 +244,19 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             mnemonic: "RRA ".to_string(),
             size_bytes: 1,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
-                let mut value = cpu.read_register(Register::A);
+                let value = cpu.read_register(Register::A);
+                let mut result = value >> 1;
+                if cpu.read_flags().carry {
+                    result |= 0b1000_0000;
+                }
+
                 cpu.write_flags(WriteFlags {
                     zero: Some(false),
                     subtract: Some(false),
                     half_carry: Some(false),
                     carry: Some(value & 0b0000_0001 != 0),
                 });
-                value >>= 1;
-                if cpu.read_flags().carry {
-                    value |= 0b1000_0000
-                };
-
-                cpu.write_register(Register::A, value);
+                cpu.write_register(Register::A, result);
             })
         }),
         0x20 => Some(Opcode {
