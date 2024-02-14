@@ -3116,11 +3116,14 @@ fn sbc_r8(cpu: &mut Cpu, r: Register) {
 }
 
 fn xor_r8(cpu: &mut Cpu, register: Register) {
-    let current_value = cpu.read_register(register);
-    let result = current_value ^ current_value;
-    cpu.write_register(register, result);
+    let a = cpu.read_register(Register::A);
+    let r = cpu.read_register(register);
+    let result = a ^ r;
+    cpu.write_register(Register::A, result);
     cpu.write_flags(WriteFlags {
         zero: Some(result == 0),
-        ..Default::default()
+        subtract: Some(false),
+        half_carry: Some(false),
+        carry: Some(false),
     });
 }
