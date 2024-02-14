@@ -1535,8 +1535,8 @@ pub fn decode(byte: u8) -> Option<Opcode> {
                 let (result, overflowed) = a.overflowing_sub(imm);
                 cpu.write_flags(WriteFlags {
                     zero: Some(result == 0),
-                    subtract: Some(false),
-                    half_carry: Some((a & 0xF) + (imm & 0xF) > 0xF),
+                    subtract: Some(true),
+                    half_carry: Some(half_carried_sub8(a, imm)),
                     carry: Some(overflowed),
                 });
             }),
