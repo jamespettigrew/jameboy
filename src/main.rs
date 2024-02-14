@@ -142,9 +142,14 @@ fn doctor(rom_path: &Path) -> std::io::Result<()> {
         let bb = memory.read(Address(pc + 1));
         let cc = memory.read(Address(pc + 2));
         let dd = memory.read(Address(pc + 3));
-        let log = format!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
-            cpu.a, cpu.f, cpu.b, cpu.c, cpu.d, cpu.e, cpu.h, cpu.l, cpu.sp, cpu.pc, aa, bb, cc, dd);
-        file.write_all(&log.into_bytes())?;
+
+        // Don't log when we hit CB/prefix opcode or we break gameboy-doctor
+        if !jameboy.prefixed {
+            let log = format!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
+                cpu.a, cpu.f, cpu.b, cpu.c, cpu.d, cpu.e, cpu.h, cpu.l, cpu.sp, cpu.pc, aa, bb, cc, dd);
+            file.write_all(&log.into_bytes())?;
+        }
+
         jameboy.step();
     }
 
