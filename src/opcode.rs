@@ -1896,32 +1896,32 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x38 => Some(Opcode {
             mnemonic: "SRL B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| srl_r8(cpu, Register::B)),
         }),
         0x39 => Some(Opcode {
             mnemonic: "SRL C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| srl_r8(cpu, Register::C)),
         }),
         0x3A => Some(Opcode {
             mnemonic: "SRL D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| srl_r8(cpu, Register::D)),
         }),
         0x3B => Some(Opcode {
             mnemonic: "SRL E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| srl_r8(cpu, Register::E)),
         }),
         0x3C => Some(Opcode {
             mnemonic: "SRL H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| srl_r8(cpu, Register::H)),
         }),
         0x3D => Some(Opcode {
             mnemonic: "SRL L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| srl_r8(cpu, Register::L)),
         }),
         0x3E => Some(Opcode {
             mnemonic: "SRL [HL]".to_string(),
@@ -1931,7 +1931,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x3F => Some(Opcode {
             mnemonic: "SRL A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| srl_r8(cpu, Register::A)),
         }),
         0x40 => Some(Opcode {
             mnemonic: "BIT 0, B".to_string(),
@@ -3154,6 +3154,18 @@ fn sbc_r8(cpu: &mut Cpu, r: Register) {
         subtract: Some(true),
         half_carry: Some(half_carried_sub8(a, b)),
         carry: Some(overflowed),
+    });
+}
+
+fn srl_r8(cpu: &mut Cpu, r: Register) {
+    let value = cpu.read_register(r);
+    let result = value >> 1;
+    cpu.write_register(r, result);
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(false),
+        half_carry: Some(false),
+        carry: Some(util::bit(value, 0) != 0),
     });
 }
 
