@@ -1122,7 +1122,19 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xAE => Some(Opcode {
             mnemonic: "XOR A, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let a = cpu.read_register(Register::A);
+                let hl = cpu.read_register_wide(RegisterWide::HL);
+                let value = memory.read(Address(hl));
+                let result = a ^ value;
+                cpu.write_register(Register::A, result);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(result == 0),
+                    subtract: Some(false),
+                    half_carry: Some(false),
+                    carry: Some(false),
+                });
+            })
         }),
         0xAF => Some(Opcode {
             mnemonic: "XOR A, A".to_string(),
