@@ -3144,11 +3144,13 @@ fn push(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
 
 fn rl_r8(cpu: &mut Cpu, r: Register) {
     let mut register_value = cpu.read_register(r);
+    let result = register_value << 1;
     cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(false),
+        half_carry: Some(false),
         carry: Some(register_value & 0b1000_0000 != 0),
-        ..Default::default()
     });
-    register_value <<= 1;
     if cpu.read_flags().carry {
         register_value |= 0b0000_0001
     };
