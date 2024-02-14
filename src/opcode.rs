@@ -1249,7 +1249,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xC4 => Some(Opcode {
             mnemonic: "CALL NZ, a16".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if cpu.read_flags().zero {
+                    return;
+                }
+
+                call_a16(cpu, memory);
+            }),
         }),
         0xC5 => Some(Opcode {
             mnemonic: "PUSH BC".to_string(),
