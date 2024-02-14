@@ -229,7 +229,21 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x1F => Some(Opcode {
             mnemonic: "RRA ".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let mut value = cpu.read_register(Register::A);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(false),
+                    subtract: Some(false),
+                    half_carry: Some(false),
+                    carry: Some(value & 0b0000_0001 != 0),
+                });
+                value >>= 1;
+                if cpu.read_flags().carry {
+                    value |= 0b1000_0000
+                };
+
+                cpu.write_register(Register::A, value);
+            })
         }),
         0x20 => Some(Opcode {
             mnemonic: "JR NZ, e8".to_string(),
