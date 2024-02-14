@@ -1259,7 +1259,20 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xC6 => Some(Opcode {
             mnemonic: "ADD A, n8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let a = cpu.read_register(Register::A);
+                let pc = cpu.read_register_wide(RegisterWide::PC);
+                let imm = memory.read(Address(pc - 1));
+
+                let (result, overflowed) = a.overflowing_add(imm);
+                cpu.write_register(Register::A, result);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(result == 0),
+                    subtract: Some(false),
+                    half_carry: Some(half_carried_add8(a, imm)),
+                    carry: Some(overflowed),
+                });
+            })
         }),
         0xC7 => Some(Opcode {
             mnemonic: "RST $00".to_string(),
