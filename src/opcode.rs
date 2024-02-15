@@ -367,7 +367,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x30 => Some(Opcode {
             mnemonic: "JR NC, e8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if cpu.read_flags().carry {
+                    return;
+                }
+
+                jump_relative(cpu, memory);
+            }),
         }),
         0x31 => Some(Opcode {
             mnemonic: "LD SP, n16".to_string(),
@@ -417,7 +423,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x38 => Some(Opcode {
             mnemonic: "JR C, e8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if !cpu.read_flags().carry {
+                    return;
+                }
+
+                jump_relative(cpu, memory);
+            }),
         }),
         0x39 => Some(Opcode {
             mnemonic: "ADD HL, SP".to_string(),
