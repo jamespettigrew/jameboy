@@ -1776,32 +1776,32 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x18 => Some(Opcode {
             mnemonic: "RR B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rr_r8(cpu, Register::B)),
         }),
         0x19 => Some(Opcode {
             mnemonic: "RR C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rr_r8(cpu, Register::C)),
         }),
         0x1A => Some(Opcode {
             mnemonic: "RR D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rr_r8(cpu, Register::D)),
         }),
         0x1B => Some(Opcode {
             mnemonic: "RR E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rr_r8(cpu, Register::E)),
         }),
         0x1C => Some(Opcode {
             mnemonic: "RR H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rr_r8(cpu, Register::H)),
         }),
         0x1D => Some(Opcode {
             mnemonic: "RR L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rr_r8(cpu, Register::L)),
         }),
         0x1E => Some(Opcode {
             mnemonic: "RR [HL]".to_string(),
@@ -1811,7 +1811,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x1F => Some(Opcode {
             mnemonic: "RR A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rr_r8(cpu, Register::A)),
         }),
         0x20 => Some(Opcode {
             mnemonic: "SLA B".to_string(),
@@ -3171,11 +3171,21 @@ fn rl_r8(cpu: &mut Cpu, r: Register) {
     });
     cpu.write_register(r, result);
 }
-    if cpu.read_flags().carry {
-        register_value |= 0b0000_0001
-    };
 
-    cpu.write_register(r, register_value);
+fn rr_r8(cpu: &mut Cpu, r: Register) {
+    let value = cpu.read_register(r);
+    let mut result = value >> 1;
+    if cpu.read_flags().carry {
+        result |= 0b1000_0000;
+    }
+
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(false),
+        half_carry: Some(false),
+        carry: Some(value & 0b0000_0001 != 0),
+    });
+    cpu.write_register(r, result);
 }
 
 fn sub_r8(cpu: &mut Cpu, r: Register) {
