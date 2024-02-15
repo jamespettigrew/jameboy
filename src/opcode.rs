@@ -178,18 +178,18 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             size_bytes: 1,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
                 let mut value = cpu.read_register(Register::A);
+                let mut result = value >> 1;
+                if cpu.read_flags().carry {
+                    result |= 0b0000_0001;
+                }
+
                 cpu.write_flags(WriteFlags {
                     zero: Some(false),
                     subtract: Some(false),
                     half_carry: Some(false),
                     carry: Some(value & 0b1000_0000 != 0),
                 });
-                value >>= 1;
-                if cpu.read_flags().carry {
-                    value |= 0b0000_0001
-                };
-
-                cpu.write_register(Register::A, value);
+                cpu.write_register(Register::A, result);
             })
         }),
         0x18 => Some(Opcode {
@@ -3157,14 +3157,20 @@ fn push(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
 }
 
 fn rl_r8(cpu: &mut Cpu, r: Register) {
-    let mut register_value = cpu.read_register(r);
-    let result = register_value << 1;
+    let register_value = cpu.read_register(r);
+    let mut result = register_value << 1;
+    if cpu.read_flags().carry {
+        result |= 0b0000_0001;
+    }
+
     cpu.write_flags(WriteFlags {
         zero: Some(result == 0),
         subtract: Some(false),
         half_carry: Some(false),
         carry: Some(register_value & 0b1000_0000 != 0),
     });
+    cpu.write_register(r, result);
+}
     if cpu.read_flags().carry {
         register_value |= 0b0000_0001
     };
