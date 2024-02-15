@@ -1203,7 +1203,19 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xB6 => Some(Opcode {
             mnemonic: "OR A, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let a = cpu.read_register(Register::A);
+                let hl = cpu.read_register_wide(RegisterWide::HL);
+                let b = memory.read(Address(hl));
+                let result = a | b;
+                cpu.write_register(Register::A, result);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(result == 0),
+                    subtract: Some(false),
+                    half_carry: Some(false),
+                    carry: Some(false),
+                });
+            }),
         }),
         0xB7 => Some(Opcode {
             mnemonic: "OR A, A".to_string(),
