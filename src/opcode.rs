@@ -1264,7 +1264,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xC0 => Some(Opcode {
             mnemonic: "RET NZ".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if cpu.read_flags().zero {
+                    return;
+                }
+
+                pop(cpu, memory, RegisterWide::PC);
+            }),
         }),
         0xC1 => Some(Opcode {
             mnemonic: "POP BC".to_string(),
@@ -1328,7 +1334,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xC8 => Some(Opcode {
             mnemonic: "RET Z".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if !cpu.read_flags().zero {
+                    return;
+                }
+
+                pop(cpu, memory, RegisterWide::PC);
+            }),
         }),
         0xC9 => Some(Opcode {
             mnemonic: "RET".to_string(),
@@ -1394,7 +1406,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xD0 => Some(Opcode {
             mnemonic: "RET NC".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if cpu.read_flags().carry {
+                    return;
+                }
+
+                pop(cpu, memory, RegisterWide::PC);
+            }),
         }),
         0xD1 => Some(Opcode {
             mnemonic: "POP DE".to_string(),
@@ -1441,7 +1459,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xD8 => Some(Opcode {
             mnemonic: "RET C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if !cpu.read_flags().carry {
+                    return;
+                }
+
+                pop(cpu, memory, RegisterWide::PC);
+            }),
         }),
         0xD9 => Some(Opcode {
             mnemonic: "RETI ".to_string(),
