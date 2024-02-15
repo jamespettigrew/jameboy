@@ -195,12 +195,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x18 => Some(Opcode {
             mnemonic: "JR e8".to_string(),
             size_bytes: 2,
-            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
-                let mut pc = cpu.read_register_wide(RegisterWide::PC);
-                let imm = memory.read(Address(pc - 1)) as i8;
-                pc = pc.wrapping_add_signed(imm.into());
-                cpu.write_register_wide(RegisterWide::PC, pc);
-            }),
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| jump_relative(cpu, memory)),
         }),
         0x19 => Some(Opcode {
             mnemonic: "ADD HL, DE".to_string(),
@@ -265,10 +260,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
                 let flags = cpu.read_flags();
                 if !flags.zero {
-                    let pc = cpu.read_register_wide(RegisterWide::PC);
-                    let imm = memory.read(Address(pc - 1)) as i8;
-                    let pc_jump = pc.saturating_add_signed(imm as i16);
-                    cpu.write_register_wide(RegisterWide::PC, pc_jump);
+                    jump_relative(cpu, memory);
                 }
             }),
         }),
@@ -326,10 +318,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
                     return;
                 }
 
-                let mut pc = cpu.read_register_wide(RegisterWide::PC);
-                let imm = memory.read(Address(pc - 1)) as i8;
-                pc = pc.wrapping_add_signed(imm as i16);
-                cpu.write_register_wide(RegisterWide::PC, pc);
+                jump_relative(cpu, memory);
             }),
         }),
         0x29 => Some(Opcode {
@@ -3057,6 +3046,13 @@ fn inc_r8(cpu: &mut Cpu, r: Register) {
 fn inc_r16(cpu: &mut Cpu, r: RegisterWide) {
     let value = cpu.read_register_wide(r);
     cpu.write_register_wide(r, value + 1);
+}
+
+fn jump_relative(cpu: &mut Cpu, memory: &mut Memory) {
+    let mut pc = cpu.read_register_wide(RegisterWide::PC);
+    let imm = memory.read(Address(pc - 1)) as i8;
+    pc = pc.wrapping_add_signed(imm.into());
+    cpu.write_register_wide(RegisterWide::PC, pc);
 }
 
 fn ld_r8_r8(cpu: &mut Cpu, dst_register: Register, src_register: Register) {
