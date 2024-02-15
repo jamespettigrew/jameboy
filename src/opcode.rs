@@ -1369,14 +1369,20 @@ pub fn decode(byte: u8) -> Option<Opcode> {
                 let a = cpu.read_register(Register::A);
                 let pc = cpu.read_register_wide(RegisterWide::PC);
                 let n = memory.read(Address(pc - 1));
-                let (result, overflowed) = a.overflowing_add(n);
-                let (result, with_carry_overflowed) = result.overflowing_add(1);
+                let (mut result, mut overflowed) = a.overflowing_add(n);
+
+                if cpu.read_flags().carry {
+                    let (carry_result, carry_overflowed) = result.overflowing_add(1);
+                    result = carry_result;
+                    overflowed |= carry_overflowed;
+                }
+
                 cpu.write_register(Register::A, result);
                 cpu.write_flags(WriteFlags {
                     zero: Some(result == 0),
                     subtract: Some(false),
-                    half_carry: Some((a & 0xF) + (n & 0xF) > 0xF),
-                    carry: Some(overflowed || with_carry_overflowed),
+                    half_carry: Some(util::half_carried_add8(a, n)),
+                    carry: Some(overflowed),
                 });
             }),
         }),
@@ -2955,12 +2961,19 @@ fn adc_r8(cpu: &mut Cpu, r: Register) {
     let a = cpu.read_register(Register::A);
     let carry_bit = cpu.read_flags().carry as u8;
     let b = cpu.read_register(r).wrapping_add(carry_bit);
-    let (result, overflowed) = a.overflowing_add(b);
+    let (mut result, mut overflowed) = a.overflowing_add(b);
+
+    if cpu.read_flags().carry {
+        let (carry_result, carry_overflowed) = result.overflowing_add(1);
+        result = carry_result;
+        overflowed |= carry_overflowed;
+    }
+
     cpu.write_register(Register::A, result);
     cpu.write_flags(WriteFlags {
         zero: Some(result == 0),
         subtract: Some(false),
-        half_carry: Some(half_carried_add8(a, b + 1)),
+        half_carry: Some(half_carried_add8(a, b)),
         carry: Some(overflowed),
     });
 }
