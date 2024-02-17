@@ -177,8 +177,8 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             mnemonic: "RLA".to_string(),
             size_bytes: 1,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
-                let mut value = cpu.read_register(Register::A);
-                let mut result = value >> 1;
+                let value = cpu.read_register(Register::A);
+                let mut result = value << 1;
                 if cpu.read_flags().carry {
                     result |= 0b0000_0001;
                 }
