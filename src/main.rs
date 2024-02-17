@@ -322,7 +322,7 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruct
                     }
                 })
                 .body(|body| {
-                    body.rows(text_height, 0xFFFF / 16, |mut row| {
+                    body.rows(text_height, 0x10000 / 16, |mut row| {
                         let row_index = row.index();
                         row.col(|ui| {
                             ui.label(format!("{:04X}", row_index * 16));
