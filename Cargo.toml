@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 derive_more = "0.99.17"
-eframe = "0.23.0"
-egui = "0.23.0"
-egui_extras = "0.23.0"
+eframe = "0.25.0"
+egui = "0.25.0"
+egui_extras = "0.25.0"
 image = "0.24.8"
 rand = { version="0.8.5", features=["small_rng"]}

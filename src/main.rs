@@ -12,7 +12,7 @@ use crate::ppu::Ppu;
 
 use eframe::egui;
 use egui::{Align, ColorImage};
-use egui_extras::{Column, TableBuilder};
+use egui_extras::{Column, TableBuilder, TableRow};
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -25,8 +25,13 @@ enum State {
     Running,
 }
 
+struct Debugger {
+    run_to_pc: Option<u16>,
+}
+
 struct Jameboy {
     cpu: Cpu,
+    debugger: Debugger,
     memory: Memory,
     prefixed: bool,
     ppu: Ppu,
@@ -37,6 +42,9 @@ impl Jameboy {
     fn init() -> Self {
         Self {
             cpu: Cpu::init(),
+            debugger: Debugger {
+                run_to_pc: None,
+            },
             memory: Memory::init(),
             prefixed: false,
             ppu: Ppu::init(),
@@ -53,6 +61,14 @@ impl Jameboy {
         } else {
             opcode::decode(byte)
         };
+
+        if let Some(run_to_pc) = self.debugger.run_to_pc {
+            if run_to_pc == pc {
+                self.state = State::Paused;
+                self.debugger.run_to_pc = None;
+                return;
+            }
+        }
 
         if opcode.is_none() {
             self.state = State::Paused;
@@ -81,7 +97,6 @@ fn main() {
     }
 
     let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(640.0, 480.0)),
         vsync: false,
         ..Default::default()
     };
@@ -117,6 +132,7 @@ fn doctor(rom_path: &Path) -> std::io::Result<()> {
 
     let mut jameboy = Jameboy::init();
     jameboy.cpu.write_register(Register::A, 0x01);
+    jameboy.cpu.write_register(Register::B, 0x00);
     jameboy.cpu.write_register(Register::C, 0x13);
     jameboy.cpu.write_register(Register::E, 0xD8);
     jameboy.cpu.write_register(Register::H, 0x01);
@@ -131,6 +147,17 @@ fn doctor(rom_path: &Path) -> std::io::Result<()> {
     jameboy.cpu.write_register_wide(RegisterWide::PC, 0x0100);
 
     let rom = open_rom(rom_path);
+    for instruction in disassembly::disassemble(&rom).iter() {
+        print!("{:04x}    ", instruction.address);
+        match &instruction.opcode {
+            Some(opcode) => {
+                print!("{}", opcode.mnemonic);
+            }
+            None => print!("UNKNOWN"),
+        }
+        print!("\n");
+    }
+
     map_rom_into_memory(&rom, &mut jameboy.memory);
     jameboy.state = State::Running;
 
@@ -196,15 +223,16 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruct
             });
         });
 
-        egui::Window::new("Program").show(ctx, |ui| {
+        egui::Window::new("Disassembly").show(ctx, |ui| {
             let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
-            let mut table = TableBuilder::new(ui)
+            let table = TableBuilder::new(ui)
                 .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
                 .column(Column::auto())
-                .column(Column::auto());
+                .column(Column::auto())
+                .resizable(true);
+
             let pc = jameboy.cpu.read_register_wide(RegisterWide::PC);
 
-            table = table.scroll_to_row(pc as usize, Some(Align::Center));
             table
                 .header(20.0, |mut header| {
                     header.col(|ui| {
@@ -215,7 +243,8 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruct
                     });
                 })
                 .body(|body| {
-                    body.rows(text_height, disassembly.len(), |row_index, mut row| {
+                    body.rows(text_height, disassembly.len(), |mut row| {
+                        let row_index = row.index();
                         let instruction = &disassembly[row_index];
                         row.col(|ui| {
                             if Address(pc) == instruction.address {
@@ -248,6 +277,11 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruct
                             };
                             ui.label(label);
                         });
+
+                        if row.response().interact(egui::Sense::click()).double_clicked() {
+                            jameboy.state = State::Running;
+                            jameboy.debugger.run_to_pc = Some(instruction.address.0);
+                        }
                     });
                 });
 
@@ -288,7 +322,8 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruct
                     }
                 })
                 .body(|body| {
-                    body.rows(text_height, 0xFFFF / 16, |row_index, mut row| {
+                    body.rows(text_height, 0xFFFF / 16, |mut row| {
+                        let row_index = row.index();
                         row.col(|ui| {
                             ui.label(format!("{:04X}", row_index * 16));
                         });
