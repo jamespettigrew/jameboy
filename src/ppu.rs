@@ -135,6 +135,7 @@ pub struct Ppu {
     dot: usize, // Dot count in the current scanline
     sprite_buffer: Vec<Sprite>, // Sprite buffer for current scanline
     x_position: u8, // Pixels pushed in the current scanline
+    fetcher_x_position: u8, // Temporary solution: fetchers need to keep track of their own internal x-position
     background_fifo: VecDeque<Pixel>,
     sprite_fifo: VecDeque<Pixel>,
     background_fetch_step: FetchStep,
@@ -149,6 +150,7 @@ impl Ppu {
             dot: 0,
             sprite_buffer: Vec::<Sprite>::with_capacity(10),
             x_position: 0,
+            fetcher_x_position: 0,
             background_fifo: VecDeque::<Pixel>::with_capacity(8),
             sprite_fifo: VecDeque::<Pixel>::with_capacity(8),
             background_fetch_step: FetchStep::FetchTileNumber,
@@ -194,6 +196,10 @@ impl Ppu {
 
                 self.dot += 1;
                 if self.dot == DOTS_PER_OAM_SCAN {
+                    self.x_position = 0;
+                    self.fetcher_x_position = 0;
+                    self.background_fifo.clear();
+                    self.sprite_fifo.clear();
                     write_ppu_mode(memory, PpuMode::Drawing);
                 }
             },
@@ -206,8 +212,8 @@ impl Ppu {
                     }
                     FetchStep::FetchTileNumber => {
                         let tile_map_area = read_bg_tile_map_area(memory);
-                        let offset = 32 * ((ly as u16 + scy) & 0xFF) / 8;
-                        let tile_number_address = tile_map_area as u16 + self.x_position as u16 + offset;
+                        let offset = 32 * (((ly as u16 + scy) & 0xFF) / 8);
+                        let tile_number_address = tile_map_area as u16 + self.fetcher_x_position as u16 + offset;
                         // TODO: Account for scroll
                         // TODO: Are we fetching BG or window tile?
                         // let scx = 0;
@@ -227,7 +233,7 @@ impl Ppu {
                         let offset =  2 * ((ly as u16 + scy) % 8);
                         let address = Address(tile_data_area as u16 + (*tile_number * 16) as u16 + offset as u16 + 1);
                         let tile_data_high = memory.read(address);
-                        let pixel_colours = line_bytes_to_pixel_colours(tile_data_high, *tile_data_low);
+                        let pixel_colours = line_bytes_to_pixel_colours(*tile_data_low, tile_data_high);
 
                         self.background_fetch_step = FetchStep::Push(pixel_colours);
                     }
@@ -238,6 +244,7 @@ impl Ppu {
                                 palette: Palette::Bgp,
                                 priority: ObjectBackgroundPriority::Background // Irrelevant for background pixels
                             });
+                            self.fetcher_x_position = (self.fetcher_x_position + 1) & 0x1F;
                             self.background_fifo.extend(pixels);
                             self.background_fetch_step = FetchStep::FetchTileNumber;
                         }
@@ -281,7 +288,7 @@ impl Ppu {
                                 priority: ObjectBackgroundPriority::Background
                             })
                             .take(self.sprite_fifo.capacity() - self.sprite_fifo.len());
-                        self.sprite_fifo.extend(pixels);
+                        self.sprite_fifo.extend(pixels.into_iter());
 
                         self.sprite_fetch_step = FetchStep::Paused;
                         self.background_fetch_step = FetchStep::FetchTileNumber;
@@ -299,11 +306,10 @@ impl Ppu {
                     } else {
                         self.image_buffer.put_pixel(self.x_position as u32, ly as u32, mixed_pixel.colour.to_grayscale());
                     }
-
                     self.x_position += 1;
+
                     if self.x_position == PIXELS_PER_SCANLINE {
                         write_ppu_mode(memory, PpuMode::HorizontalBlank);
-                        self.x_position = 0;
                         self.sprite_buffer.clear();
                     }
                 }
@@ -312,7 +318,7 @@ impl Ppu {
             },
             PpuMode::HorizontalBlank => {
                 self.dot += 1;
-                if self.dot == DOTS_PER_SCANLINE {
+                if self.dot >= DOTS_PER_SCANLINE {
                     self.dot = 0;
                     memory.write(Address(ADDRESS_LY), ly + 1);
                     let ppu_mode = if ly as usize >= SCANLINES_PER_FRAME - SCANLINES_PER_VERTICAL_BLANK {
@@ -325,7 +331,7 @@ impl Ppu {
             },
             PpuMode::VerticalBlank => {
                 self.dot += 1;
-                if self.dot == DOTS_PER_SCANLINE {
+                if self.dot >= DOTS_PER_SCANLINE {
                     self.dot = 0;
                     let mut new_ly = ly + 1;
 
