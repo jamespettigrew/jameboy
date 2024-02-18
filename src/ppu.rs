@@ -222,16 +222,18 @@ impl Ppu {
                         self.background_fetch_step = FetchStep::FetchTileLow(tile_number);
                     }
                     FetchStep::FetchTileLow(tile_number) => {
-                        let tile_data_area = 0x8000; // Could also be 0x8800, depending upon LCDC bit 4;
-                        let offset =  2 * ((ly as u16 + scy) % 8);
-                        let address = Address(tile_data_area as u16 + (*tile_number * 16) as u16 + offset as u16);
+                        let tile_data_area = 0x8000 as u16; // Could also be 0x8800, depending upon LCDC bit 4;
+                        let tile_offset = *tile_number as u16 * 16;
+                        let tile_byte_offset =  2 * ((ly as u16 + scy) % 8) as u16;
+                        let address = Address(tile_data_area + tile_offset + tile_byte_offset);
                         let tile_data_low = memory.read(address);
                         self.background_fetch_step = FetchStep::FetchTileHigh(*tile_number, tile_data_low);
                     },
                     FetchStep::FetchTileHigh(tile_number, tile_data_low) => {
-                        let tile_data_area = 0x8000; // Could also be 0x8800, depending upon LCDC bit 4;
-                        let offset =  2 * ((ly as u16 + scy) % 8);
-                        let address = Address(tile_data_area as u16 + (*tile_number * 16) as u16 + offset as u16 + 1);
+                        let tile_data_area = 0x8000 as u16; // Could also be 0x8800, depending upon LCDC bit 4;
+                        let tile_offset = *tile_number as u16 * 16;
+                        let tile_byte_offset =  2 * ((ly as u16 + scy) % 8) as u16;
+                        let address = Address(tile_data_area + tile_offset + tile_byte_offset + 1);
                         let tile_data_high = memory.read(address);
                         let pixel_colours = line_bytes_to_pixel_colours(*tile_data_low, tile_data_high);
 
