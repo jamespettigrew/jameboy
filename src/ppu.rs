@@ -14,6 +14,7 @@ const ADDRESS_LCDC_REGISTER: u16 = 0xFF40;
 const ADDRESS_LCD_STATUS_REGISTER: u16 = 0xFF41;
 const ADDRESS_SCY: u16 = 0xFF42;
 const ADDRESS_LY: u16 = 0xFF44;
+const ADDRESS_LYC: u16 = 0xFF45;
 const ADDRESS_BGP: u16 = 0xFF47;
 
 #[repr(u16)]
@@ -66,6 +67,11 @@ fn read_ppu_mode(memory: &Memory) -> PpuMode {
         (false, true) => PpuMode::OamScan,
         (false, false) => PpuMode::Drawing,
     }
+}
+
+fn write_coincidence_flag(memory: &mut Memory, enabled: bool) {
+    let status_register = memory.read(Address(ADDRESS_LCD_STATUS_REGISTER));
+    memory.write(Address(ADDRESS_LCD_STATUS_REGISTER), set_bits(status_register, enabled as u8, 0b0000_0100));
 }
 
 fn write_ppu_mode(memory: &mut Memory, ppu_mode: PpuMode) {
@@ -163,6 +169,8 @@ impl Ppu {
     pub fn step(&mut self, memory: &mut Memory) {
         let ppu_mode = read_ppu_mode(memory);
         let ly = memory.read(Address(ADDRESS_LY));
+        let lyc = memory.read(Address(ADDRESS_LYC));
+        write_coincidence_flag(memory, ly == lyc);
 
         // Initiate sprite fetch
         // TODO: Is there a cleaner way of doing this?
