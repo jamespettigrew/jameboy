@@ -1,4 +1,15 @@
 use crate::util;
+use crate::memory::{ Address, Memory };
+use crate::opcode;
+use crate::util::{ bit, u16_to_u8, set_bits };
+
+const ADDRESS_INTERRUPT_FLAG_REGISTER: u16 = 0xFF0F;
+const ADDRESS_INTERRUPT_ENABLE_REGISTER: u16 = 0xFFFF;
+const ADDRESS_VBLANK_INTERRUPT: u16 = 0x40;
+const ADDRESS_LCD_INTERRUPT: u16 = 0x48;
+const ADDRESS_TIMER_INTERRUPT: u16 = 0x50;
+const ADDRESS_SERIAL_INTERRUPT: u16 = 0x58;
+const ADDRESS_JOYPAD_INTERRUPT: u16 = 0x60;
 
 #[derive(Clone, Copy)]
 pub enum Register {
@@ -49,6 +60,9 @@ pub struct Cpu {
     pub l: u8,
     pub pc: u16, // Program counter
     pub sp: u16, // Stack pointer
+    pub ime: bool,
+    steps_since_request_ime_enable: Option<u8>, // IME enable should be delayed by one instruction after EI
+    pub prefixed: bool,
 }
 
 impl Cpu {
@@ -64,6 +78,9 @@ impl Cpu {
             l: 0,
             pc: 0,
             sp: 0,
+            ime: true,
+            steps_since_request_ime_enable: None,
+            prefixed: false,
         }
     }
 
@@ -120,6 +137,95 @@ impl Cpu {
             half_carry: self.f & (1 << 5) != 0,
             carry: self.f & (1 << 4) != 0,
         }
+    }
+
+    pub fn request_ime_enable(&mut self) {
+        self.steps_since_request_ime_enable = Some(0);
+    }
+
+    pub fn request_ime_disable(&mut self) {
+        self.ime = false;
+        self.steps_since_request_ime_enable = None;
+    }
+
+    pub fn step(&mut self, memory: &mut Memory) {
+        if self.handled_interrupts(memory) {
+            self.check_interrupts_enabled();
+            return;
+        }
+
+        let pc = self.read_register_wide(RegisterWide::PC);
+        let byte = memory.read(Address(pc));
+        let opcode = if self.prefixed {
+            self.prefixed = false;
+            opcode::decode_prefixed(byte)
+        } else {
+            opcode::decode(byte)
+        };
+
+        if opcode.is_none() {
+            return;
+        }
+
+        let opcode = opcode.unwrap();
+        if opcode.mnemonic == "PREFIX" {
+            self.prefixed = true;
+        }
+        self.pc += opcode.size_bytes as u16;
+        opcode.execute(self, memory);
+        self.check_interrupts_enabled();
+    }
+
+    fn check_interrupts_enabled(&mut self) {
+        match self.steps_since_request_ime_enable {
+            Some(1) => {
+                self.ime = true;
+                self.steps_since_request_ime_enable = None
+            },
+            Some(0) => {
+                self.steps_since_request_ime_enable = Some(1);
+            },
+            _ => {}
+        }
+    }
+
+    fn handled_interrupts(&mut self, memory: &mut Memory) -> bool {
+        if !self.ime {
+            return false;
+        }
+
+        let ie_register = memory.read(Address(ADDRESS_INTERRUPT_ENABLE_REGISTER));
+        let if_register = memory.read(Address(ADDRESS_INTERRUPT_FLAG_REGISTER));
+
+        let (bit_to_reset, interrupt_handler_address) = if bit(ie_register, 0) & bit(if_register, 0) == 1 {
+            (0, ADDRESS_VBLANK_INTERRUPT)
+        } else if bit(ie_register, 1) & bit(if_register, 1) == 1 {
+            (1, ADDRESS_LCD_INTERRUPT)
+        } else if bit(ie_register, 2) & bit(if_register, 2) == 1 {
+            (2, ADDRESS_TIMER_INTERRUPT)
+        } else if bit(ie_register, 3) & bit(if_register, 3) == 1 {
+            (3, ADDRESS_SERIAL_INTERRUPT)
+        } else if bit(ie_register, 4) & bit(if_register, 4) == 1 {
+            (4, ADDRESS_JOYPAD_INTERRUPT)
+        } else {
+            return false;
+        };
+
+        // When an interrupt is executed, the corresponding bit in the IF register becomes automatically reset 
+        // by the CPU, and the IME flag becomes cleared.
+        self.ime = false;
+        memory.write(Address(ADDRESS_INTERRUPT_FLAG_REGISTER), set_bits(if_register, 0, 1 << bit_to_reset));
+
+        let pc = self.read_register_wide(RegisterWide::PC);
+        let sp = self.read_register_wide(RegisterWide::SP);
+        let new_sp = sp - 2;
+        let (msb, lsb) = u16_to_u8(pc);
+        memory.write(Address(new_sp), lsb);
+        memory.write(Address(new_sp + 1), msb);
+        self.write_register_wide(RegisterWide::SP, new_sp);
+        self.write_register_wide(RegisterWide::PC, interrupt_handler_address);
+
+        return true;
     }
 
     pub fn write_flags(&mut self, f: WriteFlags) {

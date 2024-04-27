@@ -1482,7 +1482,10 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xD9 => Some(Opcode {
             mnemonic: "RETI ".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                cpu.request_ime_enable();
+                pop(cpu, memory, RegisterWide::PC);
+            })
         }),
         0xDA => Some(Opcode {
             mnemonic: "JP C, a16".to_string(),
@@ -1625,7 +1628,9 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xF3 => Some(Opcode {
             mnemonic: "DI".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| {
+                cpu.request_ime_disable();
+            })
         }),
         0xF5 => Some(Opcode {
             mnemonic: "PUSH AF".to_string(),
@@ -1667,7 +1672,9 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xFB => Some(Opcode {
             mnemonic: "EI ".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| {
+                cpu.request_ime_enable();
+            })
         }),
         0xFE => Some(Opcode {
             mnemonic: "CP A, n8".to_string(),

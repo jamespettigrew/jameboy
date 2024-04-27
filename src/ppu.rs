@@ -1,6 +1,5 @@
 use crate::{Address, Memory};
 use crate::util::{ bit, set_bits};
-use core::panic;
 use std::collections::VecDeque;
 use image::{GrayImage, Luma};
 
@@ -10,6 +9,7 @@ const SCANLINES_PER_FRAME: usize = 153;
 const SCANLINES_PER_VERTICAL_BLANK: usize = 10;
 const PIXELS_PER_SCANLINE: u8 = 160;
 
+const ADDRESS_INTERRUPT_FLAG_REGISTER: u16 = 0xFF0F;
 const ADDRESS_LCDC_REGISTER: u16 = 0xFF40;
 const ADDRESS_LCD_STATUS_REGISTER: u16 = 0xFF41;
 const ADDRESS_SCY: u16 = 0xFF42;
@@ -67,6 +67,11 @@ fn read_ppu_mode(memory: &Memory) -> PpuMode {
         (false, true) => PpuMode::OamScan,
         (false, false) => PpuMode::Drawing,
     }
+}
+
+fn request_vblank_interrupt(memory: &mut Memory) {
+    let status_register = memory.read(Address(ADDRESS_INTERRUPT_FLAG_REGISTER));
+    memory.write(Address(ADDRESS_INTERRUPT_FLAG_REGISTER), set_bits(status_register, 1, 0b0000_0001));
 }
 
 fn write_coincidence_flag(memory: &mut Memory, enabled: bool) {
@@ -340,6 +345,11 @@ impl Ppu {
                 }
             },
             PpuMode::VerticalBlank => {
+                // VBlank interrupt should be requested at the beginning of each VBlank period.
+                if self.dot == 0 {
+                    request_vblank_interrupt(memory);
+                }
+
                 self.dot += 1;
                 if self.dot >= DOTS_PER_SCANLINE {
                     self.dot = 0;

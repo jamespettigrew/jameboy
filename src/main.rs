@@ -33,7 +33,6 @@ struct Jameboy {
     cpu: Cpu,
     debugger: Debugger,
     memory: Memory,
-    prefixed: bool,
     ppu: Ppu,
     state: State,
 }
@@ -46,42 +45,21 @@ impl Jameboy {
                 run_to_pc: None,
             },
             memory: Memory::init(),
-            prefixed: false,
             ppu: Ppu::init(),
             state: State::Paused,
         }
     }
 
     fn step(&mut self) {
-        let pc = self.cpu.read_register_wide(RegisterWide::PC);
-        let byte = self.memory.read(Address(pc));
-        let opcode = if self.prefixed {
-            self.prefixed = false;
-            opcode::decode_prefixed(byte)
-        } else {
-            opcode::decode(byte)
-        };
-
         if let Some(run_to_pc) = self.debugger.run_to_pc {
-            if run_to_pc == pc {
+            if run_to_pc == self.cpu.pc {
                 self.state = State::Paused;
                 self.debugger.run_to_pc = None;
                 return;
             }
         }
 
-        if opcode.is_none() {
-            self.state = State::Paused;
-            return;
-        }
-
-        let opcode = opcode.unwrap();
-        if opcode.mnemonic == "PREFIX" {
-            self.prefixed = true;
-        }
-        self.cpu
-            .write_register_wide(RegisterWide::PC, pc + opcode.size_bytes as u16);
-        opcode.execute(&mut self.cpu, &mut self.memory);
+        self.cpu.step(&mut self.memory);
         self.ppu.step(&mut self.memory);
     }
 }
@@ -171,7 +149,7 @@ fn doctor(rom_path: &Path) -> std::io::Result<()> {
         let dd = memory.read(Address(pc + 3));
 
         // Don't log when we hit CB/prefix opcode or we break gameboy-doctor
-        if !jameboy.prefixed {
+        if !jameboy.cpu.prefixed {
             let log = format!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
                 cpu.a, cpu.f, cpu.b, cpu.c, cpu.d, cpu.e, cpu.h, cpu.l, cpu.sp, cpu.pc, aa, bb, cc, dd);
             file.write_all(&log.into_bytes())?;
@@ -220,6 +198,12 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruct
                 ui.add_enabled(false, egui::Checkbox::new(&mut flags.subtract, "S"));
                 ui.add_enabled(false, egui::Checkbox::new(&mut flags.half_carry, "HC"));
                 ui.add_enabled(false, egui::Checkbox::new(&mut flags.carry, "C"));
+            });
+
+            ui.heading("IME");
+            ui.horizontal(|ui| {
+                let mut ime = jameboy.cpu.ime;
+                ui.add_enabled(false, egui::Checkbox::new(&mut ime, "IME"));
             });
         });
 
