@@ -1955,32 +1955,32 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x30 => Some(Opcode {
             mnemonic: "SWAP B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| swap_r8(cpu, Register::B)),
         }),
         0x31 => Some(Opcode {
             mnemonic: "SWAP C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| swap_r8(cpu, Register::C)),
         }),
         0x32 => Some(Opcode {
             mnemonic: "SWAP D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| swap_r8(cpu, Register::D)),
         }),
         0x33 => Some(Opcode {
             mnemonic: "SWAP E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| swap_r8(cpu, Register::E)),
         }),
         0x34 => Some(Opcode {
             mnemonic: "SWAP H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| swap_r8(cpu, Register::H)),
         }),
         0x35 => Some(Opcode {
             mnemonic: "SWAP L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| swap_r8(cpu, Register::L)),
         }),
         0x36 => Some(Opcode {
             mnemonic: "SWAP [HL]".to_string(),
@@ -1990,7 +1990,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x37 => Some(Opcode {
             mnemonic: "SWAP A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| swap_r8(cpu, Register::A)),
         }),
         0x38 => Some(Opcode {
             mnemonic: "SRL B".to_string(),
@@ -3296,6 +3296,18 @@ fn srl_r8(cpu: &mut Cpu, r: Register) {
         subtract: Some(false),
         half_carry: Some(false),
         carry: Some(util::bit(value, 0) != 0),
+    });
+}
+
+fn swap_r8(cpu: &mut Cpu, r: Register) {
+    let value = cpu.read_register(r);
+    let result = value.rotate_right(4);
+    cpu.write_register(r, result);
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(false),
+        half_carry: Some(false),
+        carry: Some(false),
     });
 }
 
