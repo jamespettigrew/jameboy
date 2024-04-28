@@ -1394,7 +1394,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xC7 => Some(Opcode {
             mnemonic: "RST $00".to_string(),
             size_bytes: 1,
-            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, Address(0x00))),
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, 0x00)),
         }),
         0xC8 => Some(Opcode {
             mnemonic: "RET Z".to_string(),
@@ -1474,7 +1474,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xCF => Some(Opcode {
             mnemonic: "RST $08".to_string(),
             size_bytes: 1,
-            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, Address(0x08))),
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, 0x08)),
         }),
         0xD0 => Some(Opcode {
             mnemonic: "RET NC".to_string(),
@@ -1539,7 +1539,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xD7 => Some(Opcode {
             mnemonic: "RST $10".to_string(),
             size_bytes: 1,
-            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, Address(0x10))),
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, 0x10)),
         }),
         0xD8 => Some(Opcode {
             mnemonic: "RET C".to_string(),
@@ -1590,7 +1590,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xDF => Some(Opcode {
             mnemonic: "RST $18".to_string(),
             size_bytes: 1,
-            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, Address(0x18))),
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, 0x18)),
         }),
         0xE0 => Some(Opcode {
             mnemonic: "LDH [a8], A".to_string(),
@@ -1643,7 +1643,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xE7 => Some(Opcode {
             mnemonic: "RST $20".to_string(),
             size_bytes: 1,
-            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, Address(0x20))),
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, 0x20)),
         }),
         0xE8 => Some(Opcode {
             mnemonic: "ADD SP, e8".to_string(),
@@ -1690,7 +1690,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xEF => Some(Opcode {
             mnemonic: "RST $28".to_string(),
             size_bytes: 1,
-            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, Address(0x28))),
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, 0x28)),
         }),
         0xF0 => Some(Opcode {
             mnemonic: "LDH A, [a8]".to_string(),
@@ -1733,7 +1733,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xF7 => Some(Opcode {
             mnemonic: "RST $30".to_string(),
             size_bytes: 1,
-            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, Address(0x30))),
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, 0x30)),
         }),
         0xF8 => Some(Opcode {
             mnemonic: "LD HL, SP + e8".to_string(),
@@ -1786,7 +1786,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xFF => Some(Opcode {
             mnemonic: "RST $38".to_string(),
             size_bytes: 1,
-            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, Address(0x38))),
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| rst(cpu, memory, 0x38)),
         }),
         _ => None,
     }
@@ -3363,7 +3363,7 @@ fn rr_r8(cpu: &mut Cpu, r: Register) {
     cpu.write_register(r, result);
 }
 
-fn rst(cpu: &mut Cpu, memory: &mut Memory, address: Address) {
+fn rst(cpu: &mut Cpu, memory: &mut Memory, address: u16) {
     let pc = cpu.read_register_wide(RegisterWide::PC);
     let (msb, lsb) = util::u16_to_u8(pc);
     let sp = cpu.read_register_wide(RegisterWide::SP);
@@ -3371,7 +3371,7 @@ fn rst(cpu: &mut Cpu, memory: &mut Memory, address: Address) {
     memory.write(Address(sp - 2), lsb);
 
     cpu.write_register_wide(RegisterWide::SP, sp - 2);
-    cpu.write_register_wide(RegisterWide::PC, pc);
+    cpu.write_register_wide(RegisterWide::PC, address);
 }
 
 fn sub_r8(cpu: &mut Cpu, r: Register) {
