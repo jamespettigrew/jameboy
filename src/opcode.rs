@@ -1731,7 +1731,10 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xF9 => Some(Opcode {
             mnemonic: "LD SP, HL".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| {
+                let hl = cpu.read_register_wide(RegisterWide::HL);
+                cpu.write_register_wide(RegisterWide::SP, hl);
+            }),
         }),
         0xFA => Some(Opcode {
             mnemonic: "LD A, [a16]".to_string(),
