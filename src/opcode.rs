@@ -362,7 +362,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x2F => Some(Opcode {
             mnemonic: "CPL ".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| {
+                let a = cpu.read_register(Register::A);
+                cpu.write_register(Register::A, !a);
+                cpu.write_flags(WriteFlags {
+                    subtract: Some(true),
+                    half_carry: Some(true),
+                    ..Default::default()
+                });
+            }),
         }),
         0x30 => Some(Opcode {
             mnemonic: "JR NC, e8".to_string(),
