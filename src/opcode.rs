@@ -1,5 +1,5 @@
 use crate::cpu::{Cpu, Register, RegisterWide, WriteFlags};
-use crate::memory::{Address, Memory};
+use crate::memory::{self, Address, Memory};
 use crate::util::{self, half_carried_add8, half_carried_sub8, u16_to_u8, u8_to_u16};
 
 type OpcodeHandler = fn(cpu: &mut Cpu, memory: &mut Memory);
@@ -412,7 +412,18 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x34 => Some(Opcode {
             mnemonic: "INC [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let hl = cpu.read_register_wide(RegisterWide::HL);
+                let value = memory.read(Address(hl));
+                let result = value.wrapping_add(1);
+                memory.write(Address(hl), result);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(result == 0),
+                    subtract: Some(false),
+                    half_carry: Some(half_carried_add8(value, 1)),
+                    carry: None,
+                });
+            }),
         }),
         0x35 => Some(Opcode {
             mnemonic: "DEC [HL]".to_string(),
