@@ -137,6 +137,8 @@ fn doctor(rom_path: &Path) -> std::io::Result<()> {
     }
 
     map_rom_into_memory(&rom, &mut jameboy.memory);
+    // Unmap boot rom
+    jameboy.memory.write(Address(0xFF50), 1);
     jameboy.state = State::Running;
 
     while let State::Running = jameboy.state {
