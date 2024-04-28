@@ -2162,7 +2162,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x46 => Some(Opcode {
             mnemonic: "BIT 0, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| bit_indirect_hl(cpu, Bit::Zero)),
         }),
         0x47 => Some(Opcode {
             mnemonic: "BIT 0, A".to_string(),
@@ -2202,7 +2202,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x4E => Some(Opcode {
             mnemonic: "BIT 1, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| bit_indirect_hl(cpu, Bit::One)),
         }),
         0x4F => Some(Opcode {
             mnemonic: "BIT 1, A".to_string(),
@@ -2242,7 +2242,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x56 => Some(Opcode {
             mnemonic: "BIT 2, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| bit_indirect_hl(cpu, Bit::Two)),
         }),
         0x57 => Some(Opcode {
             mnemonic: "BIT 2, A".to_string(),
@@ -2282,7 +2282,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x5E => Some(Opcode {
             mnemonic: "BIT 3, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| bit_indirect_hl(cpu, Bit::Three)),
         }),
         0x5F => Some(Opcode {
             mnemonic: "BIT 3, A".to_string(),
@@ -2322,7 +2322,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x66 => Some(Opcode {
             mnemonic: "BIT 4, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| bit_indirect_hl(cpu, Bit::Four)),
         }),
         0x67 => Some(Opcode {
             mnemonic: "BIT 4, A".to_string(),
@@ -2362,7 +2362,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x6E => Some(Opcode {
             mnemonic: "BIT 5, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| bit_indirect_hl(cpu, Bit::Five)),
         }),
         0x6F => Some(Opcode {
             mnemonic: "BIT 5, A".to_string(),
@@ -2402,7 +2402,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x76 => Some(Opcode {
             mnemonic: "BIT 6, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| bit_indirect_hl(cpu, Bit::Six)),
         }),
         0x77 => Some(Opcode {
             mnemonic: "BIT 6, A".to_string(),
@@ -2442,7 +2442,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x7E => Some(Opcode {
             mnemonic: "BIT 7, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| bit_indirect_hl(cpu, Bit::Seven)),
         }),
         0x7F => Some(Opcode {
             mnemonic: "BIT 7, A".to_string(),
@@ -3162,6 +3162,16 @@ enum Bit {
     Five = 5,
     Six = 6,
     Seven = 7,
+}
+
+fn bit_indirect_hl(cpu: &mut Cpu, b: Bit) {
+    let bit = cpu.read_register_wide(RegisterWide::HL) & (1 << b as u8);
+    cpu.write_flags(WriteFlags {
+        zero: Some(bit == 0),
+        subtract: Some(false),
+        half_carry: Some(true),
+        ..Default::default()
+    })
 }
 
 fn bit_r8(cpu: &mut Cpu, b: Bit, r: Register) {
