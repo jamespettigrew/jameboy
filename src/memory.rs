@@ -30,6 +30,17 @@ impl Memory {
     }
 
     pub fn read(&self, address: Address) -> u8 {
+        // TODO: Remove this. It spoofs the joypad input so that Tetris functions boots without
+        // a joypad implementation.
+        if address.0 == 0xFF00 {
+            return 0xFF;
+        }
+
+        if address.0 == 0xFF44 {
+            // Uncomment the following line if testing with gameboy-doctor
+            // return 0x90;
+        }
+
         if self.ram[0xFF50] == 0 && address.0 < 0x100 {
             self.bootstrap_rom[usize::from(address.0)]
         } else {
