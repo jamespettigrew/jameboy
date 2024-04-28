@@ -143,7 +143,10 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x10 => Some(Opcode {
             mnemonic: "STOP n8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                // This should stop the CPU and LCD but I don't think this is important right now,
+                // if ever.
+            }),
         }),
         0x11 => Some(Opcode {
             mnemonic: "LD DE, n16".to_string(),
