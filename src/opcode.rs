@@ -2482,7 +2482,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x86 => Some(Opcode {
             mnemonic: "RES 0, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| res_indirect_hl(cpu, memory, Bit::Zero)),
         }),
         0x87 => Some(Opcode {
             mnemonic: "RES 0, A".to_string(),
@@ -2522,7 +2522,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x8E => Some(Opcode {
             mnemonic: "RES 1, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| res_indirect_hl(cpu, memory, Bit::One)),
         }),
         0x8F => Some(Opcode {
             mnemonic: "RES 1, A".to_string(),
@@ -2562,7 +2562,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x96 => Some(Opcode {
             mnemonic: "RES 2, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| res_indirect_hl(cpu, memory, Bit::Two)),
         }),
         0x97 => Some(Opcode {
             mnemonic: "RES 2, A".to_string(),
@@ -2602,7 +2602,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x9E => Some(Opcode {
             mnemonic: "RES 3, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| res_indirect_hl(cpu, memory, Bit::Three)),
         }),
         0x9F => Some(Opcode {
             mnemonic: "RES 3, A".to_string(),
@@ -2642,7 +2642,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xA6 => Some(Opcode {
             mnemonic: "RES 4, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| res_indirect_hl(cpu, memory, Bit::Four)),
         }),
         0xA7 => Some(Opcode {
             mnemonic: "RES 4, A".to_string(),
@@ -2682,7 +2682,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xAE => Some(Opcode {
             mnemonic: "RES 5, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| res_indirect_hl(cpu, memory, Bit::Five)),
         }),
         0xAF => Some(Opcode {
             mnemonic: "RES 5, A".to_string(),
@@ -2722,7 +2722,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xB6 => Some(Opcode {
             mnemonic: "RES 6, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| res_indirect_hl(cpu, memory, Bit::Six)),
         }),
         0xB7 => Some(Opcode {
             mnemonic: "RES 6, A".to_string(),
@@ -2762,7 +2762,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xBE => Some(Opcode {
             mnemonic: "RES 7, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| res_indirect_hl(cpu, memory, Bit::Seven)),
         }),
         0xBF => Some(Opcode {
             mnemonic: "RES 7, A".to_string(),
@@ -3354,6 +3354,13 @@ fn push(cpu: &mut Cpu, memory: &mut Memory, r: RegisterWide) {
     memory.write(Address(sp - 2), lsb);
 
     cpu.write_register_wide(RegisterWide::SP, sp - 2);
+}
+
+fn res_indirect_hl(cpu: &mut Cpu, memory: &mut Memory, b: Bit) {
+    let hl = cpu.read_register_wide(RegisterWide::HL);
+    let value = memory.read(Address(hl));
+    let new_value = util::set_bits(value, 1, 1 << b as u8);
+    memory.write(Address(hl), new_value)
 }
 
 fn res_r8(cpu: &mut Cpu, b: Bit, r: Register) {
