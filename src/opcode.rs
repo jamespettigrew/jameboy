@@ -70,7 +70,18 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x07 => Some(Opcode {
             mnemonic: "RLCA".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| {
+                let value = cpu.read_register(Register::A);
+                let result = value.rotate_left(1);
+
+                cpu.write_flags(WriteFlags {
+                    zero: Some(false),
+                    subtract: Some(false),
+                    half_carry: Some(false),
+                    carry: Some(value & 0b1000_0000 != 0),
+                });
+                cpu.write_register(Register::A, result);
+            }),
         }),
         0x08 => Some(Opcode {
             mnemonic: "LD [a16], SP".to_string(),
