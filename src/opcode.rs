@@ -417,7 +417,18 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x35 => Some(Opcode {
             mnemonic: "DEC [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let hl = cpu.read_register_wide(RegisterWide::HL);
+                let value = memory.read(Address(hl));
+                let (result, _) = value.overflowing_sub(1);
+                memory.write(Address(hl), result);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(result == 0),
+                    subtract: Some(true),
+                    half_carry: Some(half_carried_sub8(value, 1)),
+                    carry: None,
+                });
+            }),
         }),
         0x36 => Some(Opcode {
             mnemonic: "LD [HL], n8".to_string(),
@@ -3125,7 +3136,6 @@ fn cp_r8(cpu: &mut Cpu, r: Register) {
 fn dec_r8(cpu: &mut Cpu, r: Register) {
     let a = cpu.read_register(r);
     let (result, _) = a.overflowing_sub(1);
-    cpu.write_register(r, result);
     cpu.write_flags(WriteFlags {
         zero: Some(result == 0),
         subtract: Some(true),
