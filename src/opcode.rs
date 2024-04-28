@@ -13,9 +13,10 @@ pub struct Opcode {
 
 impl Opcode {
     pub fn execute(&self, cpu: &mut Cpu, memory: &mut Memory) {
-        if let Some(handler) = self.handler {
-            handler(cpu, memory);
-        }
+        match self.handler {
+            Some(handler) => handler(cpu, memory),
+            None => println!("Unimplemented opcode: {:?}", self)
+        };
     }
 }
 
@@ -24,7 +25,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x00 => Some(Opcode {
             mnemonic: "NOP".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|_, _| {}),
         }),
         0x01 => Some(Opcode {
             mnemonic: "LD BC, n16".to_string(),
@@ -1375,7 +1376,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xCB => Some(Opcode {
             mnemonic: "PREFIX".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|_, _| {}),
         }),
         0xCC => Some(Opcode {
             mnemonic: "CALL Z, a16".to_string(),
