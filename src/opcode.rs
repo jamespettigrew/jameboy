@@ -1301,7 +1301,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xC2 => Some(Opcode {
             mnemonic: "JP NZ, a16".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if cpu.read_flags().zero {
+                    return;
+                }
+
+                jump(cpu, memory);
+            }),
         }),
         0xC3 => Some(Opcode {
             mnemonic: "JP a16".to_string(),
@@ -1371,7 +1377,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xCA => Some(Opcode {
             mnemonic: "JP Z, a16".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if !cpu.read_flags().zero {
+                    return;
+                }
+
+                jump(cpu, memory);
+            }),
         }),
         0xCB => Some(Opcode {
             mnemonic: "PREFIX".to_string(),
@@ -1443,7 +1455,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xD2 => Some(Opcode {
             mnemonic: "JP NC, a16".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if cpu.read_flags().carry {
+                    return;
+                }
+
+                jump(cpu, memory);
+            }),
         }),
         0xD4 => Some(Opcode {
             mnemonic: "CALL NC, a16".to_string(),
@@ -1499,7 +1517,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xDA => Some(Opcode {
             mnemonic: "JP C, a16".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if !cpu.read_flags().carry {
+                    return;
+                }
+
+                jump(cpu, memory);
+            }),
         }),
         0xDC => Some(Opcode {
             mnemonic: "CALL C, a16".to_string(),
@@ -1577,7 +1601,10 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xE9 => Some(Opcode {
             mnemonic: "JP HL".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| {
+                let hl = cpu.read_register_wide(RegisterWide::HL);
+                cpu.write_register_wide(RegisterWide::PC, hl);
+            }),
         }),
         0xEA => Some(Opcode {
             mnemonic: "LD [a16], A".to_string(),
@@ -3123,6 +3150,14 @@ fn inc_r8(cpu: &mut Cpu, r: Register) {
 fn inc_r16(cpu: &mut Cpu, r: RegisterWide) {
     let value = cpu.read_register_wide(r);
     cpu.write_register_wide(r, value + 1);
+}
+
+fn jump(cpu: &mut Cpu, memory: &mut Memory) {
+    let pc = cpu.read_register_wide(RegisterWide::PC);
+    let msb = memory.read(Address(pc - 1));
+    let lsb = memory.read(Address(pc - 2));
+    let new_pc = util::u8_to_u16(msb, lsb);
+    cpu.write_register_wide(RegisterWide::PC, new_pc);
 }
 
 fn jump_relative(cpu: &mut Cpu, memory: &mut Memory) {
