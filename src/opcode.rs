@@ -800,7 +800,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
                     memory,
                     Register::L,
                     RegisterWide::HL,
-                    IndirectAddressingMode::Decrement,
+                    IndirectAddressingMode::Retain,
                 )
             }),
         }),
@@ -3227,11 +3227,12 @@ fn ld_r8_indirect_r16(
     let src_address = cpu.read_register_wide(src_register);
     let value = memory.read(Address(src_address));
     cpu.write_register(dst_register, value);
-
+    
+    let register_value = cpu.read_register_wide(src_register);
     match mode {
         IndirectAddressingMode::Retain => {},
-        IndirectAddressingMode::Increment => cpu.write_register_wide(src_register, src_address + 1),
-        IndirectAddressingMode::Decrement => cpu.write_register_wide(src_register, src_address - 1),
+        IndirectAddressingMode::Increment => cpu.write_register_wide(src_register, register_value + 1),
+        IndirectAddressingMode::Decrement => cpu.write_register_wide(src_register, register_value - 1),
     };
 }
 
