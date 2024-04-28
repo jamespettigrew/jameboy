@@ -1,6 +1,6 @@
 use crate::cpu::{Cpu, Register, RegisterWide, WriteFlags};
-use crate::memory::{self, Address, Memory};
-use crate::util::{self, half_carried_add8, half_carried_sub8, u16_to_u8, u8_to_u16};
+use crate::memory::{Address, Memory};
+use crate::util::{self, half_carried_add16, half_carried_add8, half_carried_sub8, u16_to_u8, u8_to_u16};
 
 type OpcodeHandler = fn(cpu: &mut Cpu, memory: &mut Memory);
 
@@ -100,7 +100,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x09 => Some(Opcode {
             mnemonic: "ADD HL, BC".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| add_hl_r16(cpu, RegisterWide::BC)),
         }),
         0x0A => Some(Opcode {
             mnemonic: "LD A, [BC]".to_string(),
@@ -212,7 +212,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x19 => Some(Opcode {
             mnemonic: "ADD HL, DE".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| add_hl_r16(cpu, RegisterWide::DE)),
         }),
         0x1A => Some(Opcode {
             mnemonic: "LD A, [DE]".to_string(),
@@ -336,7 +336,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x29 => Some(Opcode {
             mnemonic: "ADD HL, HL".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| add_hl_r16(cpu, RegisterWide::HL)),
         }),
         0x2A => Some(Opcode {
             mnemonic: "LD A, [HL+]".to_string(),
@@ -481,7 +481,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x39 => Some(Opcode {
             mnemonic: "ADD HL, SP".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| add_hl_r16(cpu, RegisterWide::SP)),
         }),
         0x3A => Some(Opcode {
             mnemonic: "LD A, [HL-]".to_string(),
@@ -3059,6 +3059,19 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         }),
         _ => None,
     }
+}
+
+fn add_hl_r16(cpu: &mut Cpu, r: RegisterWide) {
+    let hl = cpu.read_register_wide(RegisterWide::HL);
+    let value = cpu.read_register_wide(r);
+    let (result, overflowed) = hl.overflowing_add(value);
+    cpu.write_register_wide(RegisterWide::HL, result);
+    cpu.write_flags(WriteFlags {
+        subtract: Some(false),
+        half_carry: Some(half_carried_add16(hl, value)),
+        carry: Some(overflowed),
+        ..Default::default()
+    });
 }
 
 fn add_r8(cpu: &mut Cpu, r: Register) {
