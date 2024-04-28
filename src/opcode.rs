@@ -1506,7 +1506,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xD4 => Some(Opcode {
             mnemonic: "CALL NC, a16".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if cpu.read_flags().carry {
+                    return;
+                }
+
+                call_a16(cpu, memory);
+            }),
         }),
         0xD5 => Some(Opcode {
             mnemonic: "PUSH DE".to_string(),
@@ -1568,7 +1574,13 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xDC => Some(Opcode {
             mnemonic: "CALL C, a16".to_string(),
             size_bytes: 3,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                if !cpu.read_flags().carry {
+                    return;
+                }
+
+                call_a16(cpu, memory);
+            }),
         }),
         0xDE => Some(Opcode {
             mnemonic: "SBC A, n8".to_string(),
