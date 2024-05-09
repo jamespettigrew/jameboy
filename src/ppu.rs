@@ -1,18 +1,20 @@
+use crate::util::{bit, set_bits};
 use crate::{Address, Memory};
-use crate::util::{ bit, set_bits};
-use std::collections::VecDeque;
 use image::{GrayImage, Luma};
+use std::collections::VecDeque;
 
 const DOTS_PER_OAM_SCAN: usize = 80;
 const DOTS_PER_SCANLINE: usize = 456;
 const SCANLINES_PER_FRAME: usize = 153;
 const SCANLINES_PER_VERTICAL_BLANK: usize = 10;
 const PIXELS_PER_SCANLINE: u8 = 160;
+const TILE_DIMENSION: usize = 8;
 
 const ADDRESS_INTERRUPT_FLAG_REGISTER: u16 = 0xFF0F;
 const ADDRESS_LCDC_REGISTER: u16 = 0xFF40;
 const ADDRESS_LCD_STATUS_REGISTER: u16 = 0xFF41;
 const ADDRESS_SCY: u16 = 0xFF42;
+const ADDRESS_SCX: u16 = 0xFF43;
 const ADDRESS_LY: u16 = 0xFF44;
 const ADDRESS_LYC: u16 = 0xFF45;
 const ADDRESS_BGP: u16 = 0xFF47;
@@ -71,24 +73,40 @@ fn read_ppu_mode(memory: &Memory) -> PpuMode {
 
 fn request_vblank_interrupt(memory: &mut Memory) {
     let status_register = memory.read(Address(ADDRESS_INTERRUPT_FLAG_REGISTER));
-    memory.write(Address(ADDRESS_INTERRUPT_FLAG_REGISTER), set_bits(status_register, 1, 0b0000_0001));
+    memory.write(
+        Address(ADDRESS_INTERRUPT_FLAG_REGISTER),
+        set_bits(status_register, 1, 0b0000_0001),
+    );
 }
 
 fn write_coincidence_flag(memory: &mut Memory, enabled: bool) {
     let status_register = memory.read(Address(ADDRESS_LCD_STATUS_REGISTER));
-    memory.write(Address(ADDRESS_LCD_STATUS_REGISTER), set_bits(status_register, enabled as u8, 0b0000_0100));
+    memory.write(
+        Address(ADDRESS_LCD_STATUS_REGISTER),
+        set_bits(status_register, enabled as u8, 0b0000_0100),
+    );
 }
 
 fn write_ppu_mode(memory: &mut Memory, ppu_mode: PpuMode) {
     let status_register = memory.read(Address(ADDRESS_LCD_STATUS_REGISTER));
-    memory.write(Address(ADDRESS_LCD_STATUS_REGISTER), set_bits(status_register, ppu_mode as u8, 0b0000_0011));
+    memory.write(
+        Address(ADDRESS_LCD_STATUS_REGISTER),
+        set_bits(status_register, ppu_mode as u8, 0b0000_0011),
+    );
 }
 
+#[derive(Copy, Clone)]
 enum ObjectBackgroundPriority {
-    Object, // Sprite is always rendered above background
+    Object,     // Sprite is always rendered above background
     Background, // Background colors 1-3 overlay sprite, sprite is still rendered above color 0
 }
 
+enum SpriteHeight {
+    Normal = 8,
+    Tall = 16,
+}
+
+#[derive(Copy, Clone)]
 struct Sprite {
     y_position: u8,
     x_position: u8,
@@ -96,6 +114,15 @@ struct Sprite {
     flags: SpriteFlags,
 }
 
+impl Sprite {
+    fn visible(&self, ly: u8, height: SpriteHeight) -> bool {
+        self.x_position > 0
+            && self.y_position <= ly + 16
+            && self.y_position + height as u8 > ly + 16
+    }
+}
+
+#[derive(Copy, Clone)]
 struct SpriteFlags {
     priority: ObjectBackgroundPriority,
     y_flip: bool,
@@ -123,7 +150,7 @@ impl From<&[u8]> for Sprite {
             y_position: item[0],
             x_position: item[1],
             tile_number: item[2],
-            flags: SpriteFlags::from(item[3]), 
+            flags: SpriteFlags::from(item[3]),
         }
     }
 }
@@ -134,6 +161,23 @@ struct Pixel {
     priority: ObjectBackgroundPriority,
 }
 
+impl Pixel {
+    fn mix(background_pixel: Pixel, sprite_pixel: Pixel) -> Pixel {
+        if let PixelColour::White = sprite_pixel.colour {
+            return background_pixel;
+        }
+
+        if let ObjectBackgroundPriority::Background = sprite_pixel.priority {
+            return match background_pixel.colour {
+                PixelColour::White => sprite_pixel,
+                _ => background_pixel,
+            };
+        }
+
+        sprite_pixel
+    }
+}
+
 enum FetchStep {
     Paused,
     FetchTileNumber,
@@ -142,17 +186,147 @@ enum FetchStep {
     Push([PixelColour; TILE_DIMENSION]),
 }
 
+struct BackgroundFetcher {
+    x_position: u8,
+    fetch_step: FetchStep,
+    fifo: VecDeque<Pixel>,
+}
+
+impl BackgroundFetcher {
+    fn paused(&self) -> bool {
+        match self.fetch_step {
+            FetchStep::Paused => true,
+            _ => false,
+        }
+    }
+
+    fn reset(&mut self) {
+        self.x_position = 0;
+        self.fetch_step = FetchStep::FetchTileNumber;
+    }
+
+    fn step(&mut self, memory: &Memory) {
+        let ly = memory.read(Address(ADDRESS_LY));
+        let scy = memory.read(Address(ADDRESS_SCY)) as u16;
+        let scx = memory.read(Address(ADDRESS_SCX)) as u16;
+
+        match &self.fetch_step {
+            FetchStep::Paused => {}
+            FetchStep::FetchTileNumber => {
+                // TODO: Are we fetching BG or window tile?
+                let tile_map_area = read_bg_tile_map_area(memory);
+                let y_offset = (32 * (((ly as u16 + scy) & 0xFF) / 8)) & 0x3FF;
+                let x_offset = (self.x_position as u16 + (scx & 0x1F)) & 0x3FF;
+                let tile_number_address = tile_map_area as u16 + x_offset + y_offset;
+                let tile_number = memory.read(Address(tile_number_address));
+                self.fetch_step = FetchStep::FetchTileLow(tile_number);
+            }
+            FetchStep::FetchTileLow(tile_number) => {
+                let tile_data_area = 0x8000 as u16; // Could also be 0x8800, depending upon LCDC bit 4;
+                let tile_offset = *tile_number as u16 * 16;
+                let tile_byte_offset = 2 * ((ly as u16 + scy) % 8) as u16;
+                let address = Address(tile_data_area + tile_offset + tile_byte_offset);
+                let tile_data_low = memory.read(address);
+                self.fetch_step = FetchStep::FetchTileHigh(*tile_number, tile_data_low);
+            }
+            FetchStep::FetchTileHigh(tile_number, tile_data_low) => {
+                let tile_data_area = 0x8000 as u16; // Could also be 0x8800, depending upon LCDC bit 4;
+                let tile_offset = *tile_number as u16 * 16;
+                let tile_byte_offset = 2 * ((ly as u16 + scy) % 8) as u16;
+                let address = Address(tile_data_area + tile_offset + tile_byte_offset + 1);
+                let tile_data_high = memory.read(address);
+                let pixel_colours = line_bytes_to_pixel_colours(*tile_data_low, tile_data_high);
+                self.fetch_step = FetchStep::Push(pixel_colours);
+            }
+            FetchStep::Push(pixel_colours) => {
+                if self.fifo.is_empty() {
+                    let pixels = pixel_colours.into_iter().map(|colour| Pixel {
+                        colour: *colour,
+                        palette: Palette::Bgp,
+                        priority: ObjectBackgroundPriority::Background, // Irrelevant for background pixels
+                    });
+                    self.x_position = (self.x_position + 1) & 0x1F;
+                    self.fifo.extend(pixels);
+                    self.fetch_step = FetchStep::FetchTileNumber;
+                }
+            }
+        };
+    }
+}
+
+struct SpriteFetcher {
+    fetch_step: FetchStep,
+    fifo: VecDeque<Pixel>,
+    sprite: Option<Sprite>,
+}
+
+impl SpriteFetcher {
+    fn paused(&self) -> bool {
+        match self.fetch_step {
+            FetchStep::Paused => true,
+            _ => false,
+        }
+    }
+
+    fn reset(&mut self) {
+        self.fifo.clear();
+    }
+
+    fn step(&mut self, memory: &Memory, ppu_x_position: u8) {
+        let ly = memory.read(Address(ADDRESS_LY));
+        let scy = memory.read(Address(ADDRESS_SCY)) as u16;
+
+        match &self.fetch_step {
+            FetchStep::Paused => {}
+            FetchStep::FetchTileNumber => {
+                let sprite = self.sprite.expect("SpriteFetcher sprite is not None");
+                self.fetch_step = FetchStep::FetchTileLow(sprite.tile_number);
+            }
+            FetchStep::FetchTileLow(tile_number) => {
+                let offset = 2 * ((ly as u16 + scy) % 8);
+                let address = Address(0x8000 + (*tile_number * 16) as u16 + offset as u16);
+                let tile_data_low = memory.read(address);
+                self.fetch_step = FetchStep::FetchTileHigh(*tile_number, tile_data_low);
+            }
+            FetchStep::FetchTileHigh(tile_number, tile_data_low) => {
+                let offset = 2 * ((ly as u16 + scy) % 8);
+                let address = Address(0x8000 + (*tile_number * 16) as u16 + offset as u16 + 1);
+                let tile_data_high = memory.read(address);
+                let pixel_colours = line_bytes_to_pixel_colours(tile_data_high, *tile_data_low);
+
+                self.fetch_step = FetchStep::Push(pixel_colours);
+            }
+            FetchStep::Push(pixel_colours) => {
+                let sprite = self.sprite.expect("SpriteFetcher sprite is not None");
+                let visible_pixel_count = sprite.x_position - ppu_x_position;
+                let pixels = pixel_colours
+                    .into_iter()
+                    .map(|colour| Pixel {
+                        colour: *colour,
+                        palette: Palette::Bgp,
+                        priority: sprite.flags.priority,
+                    })
+                    .take(visible_pixel_count.into())
+                    .take(self.fifo.capacity() - self.fifo.len());
+                self.fifo.extend(pixels.into_iter());
+                self.fetch_step = FetchStep::Paused;
+            }
+        }
+    }
+}
+
 pub struct Ppu {
-    dot: usize, // Dot count in the current scanline
-    sprite_buffer: Vec<Sprite>, // Sprite buffer for current scanline
-    x_position: u8, // Pixels pushed in the current scanline
-    fetcher_x_position: u8, // Temporary solution: fetchers need to keep track of their own internal x-position
-    background_fifo: VecDeque<Pixel>,
-    sprite_fifo: VecDeque<Pixel>,
-    background_fetch_step: FetchStep,
-    sprite_fetch_step: FetchStep,
+    // Dot count in the current scanline
+    dot: usize,
+    // Sprite buffer for current scanline
+    sprite_buffer: Vec<Sprite>,
+    // Pixels pushed in the current scanline
+    x_position: u8,
+    background_fetcher: BackgroundFetcher,
+    sprite_fetcher: SpriteFetcher,
+    // Number of pixels to discard from the background FIFO at the start of mode 3 (PpuMode::Drawing)
+    discard_count: usize,
     pub image_buffer: image::GrayImage,
-    pixel_shifting_enabled: bool,
 }
 
 impl Ppu {
@@ -161,13 +335,18 @@ impl Ppu {
             dot: 0,
             sprite_buffer: Vec::<Sprite>::with_capacity(10),
             x_position: 0,
-            fetcher_x_position: 0,
-            background_fifo: VecDeque::<Pixel>::with_capacity(8),
-            sprite_fifo: VecDeque::<Pixel>::with_capacity(8),
-            background_fetch_step: FetchStep::FetchTileNumber,
-            sprite_fetch_step: FetchStep::Paused,
+            background_fetcher: BackgroundFetcher {
+                x_position: 0,
+                fetch_step: FetchStep::FetchTileNumber,
+                fifo: VecDeque::<Pixel>::with_capacity(8),
+            },
+            sprite_fetcher: SpriteFetcher {
+                fetch_step: FetchStep::Paused,
+                fifo: VecDeque::<Pixel>::with_capacity(8),
+                sprite: None,
+            },
+            discard_count: 0,
             image_buffer: GrayImage::new(160, 144),
-            pixel_shifting_enabled: true,
         }
     }
 
@@ -177,32 +356,17 @@ impl Ppu {
         let lyc = memory.read(Address(ADDRESS_LYC));
         write_coincidence_flag(memory, ly == lyc);
 
-        // Initiate sprite fetch
-        // TODO: Is there a cleaner way of doing this?
-        match self.sprite_fetch_step {
-            FetchStep::Paused => {
-            },
-            _ => {
-                if self.sprite_buffer.iter().any(|s| s.x_position <= self.x_position + 8) {
-                    self.background_fetch_step = FetchStep::Paused;
-                    self.sprite_fetch_step = FetchStep::Paused;
-                    self.pixel_shifting_enabled = false;
-                }
-            },
-        };
-
         match ppu_mode {
             PpuMode::OamScan => {
                 // Each sprite takes 2 dots to fetch, skip odd dots.
-                if self.dot  % 2 == 0 {
+                if self.dot % 2 == 0 {
                     let byte_offset = self.dot * 4;
                     let sprite_address = Address(0xFE00 + byte_offset as u16);
                     let sprite_memory = memory.read_range(sprite_address, 4);
                     let sprite = Sprite::from(sprite_memory);
-                    let sprite_height = 8; // TODO: 8 in Normal Mode, 16 in Tall-Sprite-Mode
-
-                    // Render conditions for sprite
-                    if self.sprite_buffer.len() < 10 || sprite.x_position > 0 || ly + 16 >= sprite.y_position || ly + 16 <= sprite.y_position + sprite_height {
+                    let sprite_height = SpriteHeight::Normal; // TODO: fetch from register
+                                                              // Render conditions for sprite
+                    if self.sprite_buffer.len() < 10 && sprite.visible(ly, sprite_height) {
                         self.sprite_buffer.push(sprite);
                     }
                 }
@@ -210,140 +374,81 @@ impl Ppu {
                 self.dot += 1;
                 if self.dot == DOTS_PER_OAM_SCAN {
                     self.x_position = 0;
-                    self.fetcher_x_position = 0;
-                    self.background_fifo.clear();
-                    self.sprite_fifo.clear();
                     write_ppu_mode(memory, PpuMode::Drawing);
+                    self.sprite_buffer
+                        .sort_by(|s1, s2| (*s2).x_position.cmp(&s1.x_position));
+                    // SCX mod 8 pixels should be discarded at the start of each scanline
+                    let scx = memory.read(Address(ADDRESS_SCX)) as u16;
+                    self.discard_count = (scx % 8) as usize;
                 }
-            },
+            }
             PpuMode::Drawing => {
-                let scy = memory.read(Address(ADDRESS_SCY)) as u16;
+                // Initiate sprite fetch if the X-Position of any sprite in the sprite buffer
+                // is less than or equal to the current Pixel-X-Position + 8
+                if self.sprite_fetcher.paused()
+                    && self
+                        .sprite_buffer
+                        .iter()
+                        .any(|s| s.x_position <= self.x_position + 8)
+                {
+                    self.background_fetcher.fetch_step = FetchStep::Paused;
+                    self.sprite_fetcher.sprite = self.sprite_buffer.pop();
+                    self.sprite_fetcher.fetch_step = FetchStep::FetchTileNumber;
+                };
 
-                match &self.background_fetch_step {
-                    FetchStep::Paused => {
-                        // No-op?
-                    }
-                    FetchStep::FetchTileNumber => {
-                        let tile_map_area = read_bg_tile_map_area(memory);
-                        let offset = 32 * (((ly as u16 + scy) & 0xFF) / 8);
-                        let tile_number_address = tile_map_area as u16 + self.fetcher_x_position as u16 + offset;
-                        // TODO: Account for scroll
-                        // TODO: Are we fetching BG or window tile?
-                        // let scx = 0;
-                        
-                        let tile_number = memory.read(Address(tile_number_address));
-                        self.background_fetch_step = FetchStep::FetchTileLow(tile_number);
-                    }
-                    FetchStep::FetchTileLow(tile_number) => {
-                        let tile_data_area = 0x8000 as u16; // Could also be 0x8800, depending upon LCDC bit 4;
-                        let tile_offset = *tile_number as u16 * 16;
-                        let tile_byte_offset =  2 * ((ly as u16 + scy) % 8) as u16;
-                        let address = Address(tile_data_area + tile_offset + tile_byte_offset);
-                        let tile_data_low = memory.read(address);
-                        self.background_fetch_step = FetchStep::FetchTileHigh(*tile_number, tile_data_low);
-                    },
-                    FetchStep::FetchTileHigh(tile_number, tile_data_low) => {
-                        let tile_data_area = 0x8000 as u16; // Could also be 0x8800, depending upon LCDC bit 4;
-                        let tile_offset = *tile_number as u16 * 16;
-                        let tile_byte_offset =  2 * ((ly as u16 + scy) % 8) as u16;
-                        let address = Address(tile_data_area + tile_offset + tile_byte_offset + 1);
-                        let tile_data_high = memory.read(address);
-                        let pixel_colours = line_bytes_to_pixel_colours(*tile_data_low, tile_data_high);
+                self.background_fetcher.step(memory);
+                self.sprite_fetcher.step(memory, self.x_position);
 
-                        self.background_fetch_step = FetchStep::Push(pixel_colours);
+                if self.sprite_fetcher.paused() {
+                    if self.background_fetcher.paused() {
+                        self.background_fetcher.fetch_step = FetchStep::FetchTileNumber;
                     }
-                    FetchStep::Push(pixel_colours) => {
-                        if self.background_fifo.is_empty() {
-                            let pixels = pixel_colours.into_iter().map(|colour| Pixel {
-                                colour: *colour,
-                                palette: Palette::Bgp,
-                                priority: ObjectBackgroundPriority::Background // Irrelevant for background pixels
-                            });
-                            self.fetcher_x_position = (self.fetcher_x_position + 1) & 0x1F;
-                            self.background_fifo.extend(pixels);
-                            self.background_fetch_step = FetchStep::FetchTileNumber;
+
+                    if let Some(background_pixel) = self.background_fetcher.fifo.pop_front() {
+                        // Pause rendering while we discard SCX mod 8 pixels from leftmost tile
+                        if self.discard_count > 0 {
+                            self.discard_count -= 1;
+                            self.dot += 1;
+
+                            return;
+                        }
+
+                        let mixed_pixel = match self.sprite_fetcher.fifo.pop_front() {
+                            Some(sprite_pixel) => Pixel::mix(background_pixel, sprite_pixel),
+                            None => background_pixel,
+                        };
+                        self.image_buffer.put_pixel(
+                            self.x_position as u32,
+                            ly as u32,
+                            mixed_pixel.colour.to_grayscale(),
+                        );
+
+                        self.x_position += 1;
+                        if self.x_position == PIXELS_PER_SCANLINE {
+                            write_ppu_mode(memory, PpuMode::HorizontalBlank);
+                            self.sprite_buffer.clear();
+                            self.background_fetcher.reset();
+                            self.background_fetcher.fifo.clear();
+                            self.sprite_fetcher.reset();
                         }
                     }
-                };
-
-                match &self.sprite_fetch_step {
-                    FetchStep::Paused => {
-                    },
-                    FetchStep::FetchTileNumber => {
-                        let tile_map_area = read_bg_tile_map_area(memory);
-                        let offset = 32 * ((ly as u16 + scy) & 0xFF) / 8;
-                        let tile_number_address = tile_map_area as u16 + self.x_position as u16 + offset as u16;
-                        // TODO: Account for scroll
-                        // TODO: Are we fetching BG or window tile?
-                        // let scx = 0;
-                        
-                        let tile_number = memory.read(Address(tile_number_address));
-                        self.sprite_fetch_step = FetchStep::FetchTileLow(tile_number);
-                    }
-                    FetchStep::FetchTileLow(tile_number) => {
-                        let offset =  2 * ((ly as u16 + scy) % 8);
-                        let address = Address(0x8000 + (*tile_number * 16) as u16 + offset as u16);
-                        let tile_data_low = memory.read(address);
-                        self.sprite_fetch_step = FetchStep::FetchTileHigh(*tile_number, tile_data_low);
-                    },
-                    FetchStep::FetchTileHigh(tile_number, tile_data_low) => {
-                        let offset =  2 * ((ly as u16 + scy) % 8);
-                        let address = Address(0x8000 + (*tile_number * 16) as u16 + offset as u16 + 1);
-                        let tile_data_high = memory.read(address);
-                        let pixel_colours = line_bytes_to_pixel_colours(tile_data_high, *tile_data_low);
-
-                        self.sprite_fetch_step = FetchStep::Push(pixel_colours);
-                    }
-                    FetchStep::Push(pixel_colours) => {
-                        let pixels = pixel_colours
-                            .into_iter()
-                            .map(|colour| Pixel {
-                                colour: *colour,
-                                palette: Palette::Bgp,
-                                priority: ObjectBackgroundPriority::Background
-                            })
-                            .take(self.sprite_fifo.capacity() - self.sprite_fifo.len());
-                        self.sprite_fifo.extend(pixels.into_iter());
-
-                        self.sprite_fetch_step = FetchStep::Paused;
-                        self.background_fetch_step = FetchStep::FetchTileNumber;
-                        self.pixel_shifting_enabled = true;
-                    }
-                };
-
-                if self.pixel_shifting_enabled && !self.background_fifo.is_empty() {
-                    let background_pixel = self.background_fifo.pop_front().expect("Background FIFO should be non-empty");
-                    let sprite_pixel = self.sprite_fifo.pop_front();
-                    let mixed_pixel = background_pixel;
-
-                    if let Some(_) = sprite_pixel {
-                        self.image_buffer.put_pixel(self.x_position as u32, ly as u32, PixelColour::Black.to_grayscale());
-                    } else {
-                        self.image_buffer.put_pixel(self.x_position as u32, ly as u32, mixed_pixel.colour.to_grayscale());
-                    }
-                    self.x_position += 1;
-
-                    if self.x_position == PIXELS_PER_SCANLINE {
-                        write_ppu_mode(memory, PpuMode::HorizontalBlank);
-                        self.sprite_buffer.clear();
-                    }
                 }
-
                 self.dot += 1;
-            },
+            }
             PpuMode::HorizontalBlank => {
                 self.dot += 1;
                 if self.dot >= DOTS_PER_SCANLINE {
                     self.dot = 0;
                     memory.write(Address(ADDRESS_LY), ly + 1);
-                    let ppu_mode = if ly as usize >= SCANLINES_PER_FRAME - SCANLINES_PER_VERTICAL_BLANK {
-                        PpuMode::VerticalBlank
-                    } else {
-                        PpuMode::OamScan
-                    };
+                    let ppu_mode =
+                        if ly as usize >= SCANLINES_PER_FRAME - SCANLINES_PER_VERTICAL_BLANK {
+                            PpuMode::VerticalBlank
+                        } else {
+                            PpuMode::OamScan
+                        };
                     write_ppu_mode(memory, ppu_mode);
                 }
-            },
+            }
             PpuMode::VerticalBlank => {
                 // VBlank interrupt should be requested at the beginning of each VBlank period.
                 if self.dot == 0 {
@@ -366,13 +471,8 @@ impl Ppu {
     }
 }
 
-const LINE_BYTES: usize = 2;
-const TILE_LINES: usize = 8;
-const TILE_DIMENSION: usize = 8;
-const TILE_COUNT: usize = 128;
-const TILE_MAP_COUNT: usize = 1024;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 enum PixelColour {
     White,
     LightGray,
@@ -412,7 +512,8 @@ fn line_bytes_to_pixel_colours(first_byte: u8, second_byte: u8) -> [PixelColour;
         let lsb = first_byte >> bit & 1;
         let msb = second_byte >> bit & 1;
 
-        pixels[i] = PixelColour::try_from((msb << 1) | lsb).expect("Only 2 bits should be passed to PixelColour::try_from");
+        pixels[i] = PixelColour::try_from((msb << 1) | lsb)
+            .expect("Only 2 bits should be passed to PixelColour::try_from");
     }
 
     pixels
@@ -425,17 +526,17 @@ mod tests {
     #[test]
     fn test_line_bytes_to_pixels() {
         assert_eq!(
-            [0, 2, 3, 3, 3, 3, 2, 0],
-            line_bytes_to_pixels(0b00111100, 0b01111110)
+            [PixelColour::White, PixelColour::DarkGray, PixelColour::Black, PixelColour::Black, PixelColour::Black, PixelColour::Black, PixelColour::DarkGray, PixelColour::White],
+            line_bytes_to_pixel_colours(0b00111100, 0b01111110)
         );
         assert_eq!(
-            [0, 3, 0, 0, 0, 0, 3, 0],
-            line_bytes_to_pixels(0b01000010, 0b01000010)
+            [PixelColour::White, PixelColour::Black, PixelColour::White, PixelColour::White, PixelColour::White, PixelColour::White, PixelColour::Black, PixelColour::White],
+            line_bytes_to_pixel_colours(0b01000010, 0b01000010)
         );
 
         assert_eq!(
-            [0, 1, 1, 1, 3, 1, 3, 0],
-            line_bytes_to_pixels(0b01111110, 0b00001010)
+            [PixelColour::White, PixelColour::LightGray, PixelColour::LightGray, PixelColour::LightGray, PixelColour::Black, PixelColour::LightGray, PixelColour::Black, PixelColour::White],
+            line_bytes_to_pixel_colours(0b01111110, 0b00001010)
         );
     }
 }

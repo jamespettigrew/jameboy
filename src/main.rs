@@ -60,7 +60,11 @@ impl Jameboy {
         }
 
         self.cpu.step(&mut self.memory);
-        self.ppu.step(&mut self.memory);
+
+        // 4 PPU dots per M-cycle
+        for _ in 0..4 {
+            self.ppu.step(&mut self.memory);
+        }
     }
 }
 
@@ -83,11 +87,11 @@ fn main() {
     let bootstrap_rom = open_rom(Path::new("./roms/bootstrap.gb"));
     jameboy.memory.load_bootstrap_rom(&bootstrap_rom);
 
-    let rom = open_rom(Path::new("./roms/logo.gb"));
+    let rom = open_rom(Path::new("./roms/tetris.gb"));
     map_rom_into_memory(&rom, &mut jameboy.memory);
-    let disassembly = disassembly::disassemble(&bootstrap_rom);
+    let disassembly = disassembly::disassemble(&rom);
 
-    let goal_render_ms = 16_u128;
+    let goal_render_ms = 128_u128;
     eframe::run_simple_native("jameboy", options, move |ctx, _frame| {
         ctx.request_repaint();
         render(ctx, &mut jameboy, &disassembly);
