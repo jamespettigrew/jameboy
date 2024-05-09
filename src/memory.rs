@@ -1,4 +1,6 @@
 extern crate derive_more;
+use core::panic;
+
 use derive_more::LowerHex;
 use rand::rngs::SmallRng;
 use rand::{RngCore, SeedableRng};
@@ -55,6 +57,16 @@ impl Memory {
     }
 
     pub fn write(&mut self, address: Address, value: u8) {
+        if address.0 == 0xFFFF {
+            //println!("IE: {:08b}", value);
+        }
+        if address.0 == 0xFF0F {
+            //println!("IF: {:08b}", value);
+        }
+        if address.0 == 0xFF41 {
+            //println!("LCD STATUS: {:08b}", value);
+        }
+
         self.ram[usize::from(address.0)] = value;
     }
 }
