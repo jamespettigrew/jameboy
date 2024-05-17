@@ -373,7 +373,6 @@ impl Ppu {
 
                 self.dot += 1;
                 if self.dot == DOTS_PER_OAM_SCAN {
-                    self.x_position = 0;
                     write_ppu_mode(memory, PpuMode::Drawing);
                     self.sprite_buffer
                         .sort_by(|s1, s2| (*s2).x_position.cmp(&s1.x_position));
@@ -426,6 +425,7 @@ impl Ppu {
                         self.x_position += 1;
                         if self.x_position == PIXELS_PER_SCANLINE {
                             write_ppu_mode(memory, PpuMode::HorizontalBlank);
+                            self.x_position = 0;
                             self.sprite_buffer.clear();
                             self.background_fetcher.reset();
                             self.background_fetcher.fifo.clear();

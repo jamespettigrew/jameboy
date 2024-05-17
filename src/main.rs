@@ -59,6 +59,7 @@ impl Jameboy {
             }
         }
 
+        self.memory.step();
         self.cpu.step(&mut self.memory);
 
         // 4 PPU dots per M-cycle
