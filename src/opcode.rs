@@ -2802,7 +2802,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xC6 => Some(Opcode {
             mnemonic: "SET 0, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| set_indirect_hl(cpu, memory, Bit::Zero)),
         }),
         0xC7 => Some(Opcode {
             mnemonic: "SET 0, A".to_string(),
@@ -2842,7 +2842,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xCE => Some(Opcode {
             mnemonic: "SET 1, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| set_indirect_hl(cpu, memory, Bit::One)),
         }),
         0xCF => Some(Opcode {
             mnemonic: "SET 1, A".to_string(),
@@ -2882,7 +2882,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xD6 => Some(Opcode {
             mnemonic: "SET 2, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| set_indirect_hl(cpu, memory, Bit::Two)),
         }),
         0xD7 => Some(Opcode {
             mnemonic: "SET 2, A".to_string(),
@@ -2922,7 +2922,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xDE => Some(Opcode {
             mnemonic: "SET 3, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| set_indirect_hl(cpu, memory, Bit::Three)),
         }),
         0xDF => Some(Opcode {
             mnemonic: "SET 3, A".to_string(),
@@ -2962,7 +2962,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xE6 => Some(Opcode {
             mnemonic: "SET 4, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| set_indirect_hl(cpu, memory, Bit::Four)),
         }),
         0xE7 => Some(Opcode {
             mnemonic: "SET 4, A".to_string(),
@@ -3002,7 +3002,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xEE => Some(Opcode {
             mnemonic: "SET 5, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| set_indirect_hl(cpu, memory, Bit::Five)),
         }),
         0xEF => Some(Opcode {
             mnemonic: "SET 5, A".to_string(),
@@ -3042,7 +3042,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xF6 => Some(Opcode {
             mnemonic: "SET 6, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| set_indirect_hl(cpu, memory, Bit::Six)),
         }),
         0xF7 => Some(Opcode {
             mnemonic: "SET 6, A".to_string(),
@@ -3082,7 +3082,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xFE => Some(Opcode {
             mnemonic: "SET 7, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| set_indirect_hl(cpu, memory, Bit::Seven)),
         }),
         0xFF => Some(Opcode {
             mnemonic: "SET 7, A".to_string(),
@@ -3439,6 +3439,13 @@ fn sbc_r8(cpu: &mut Cpu, r: Register) {
         half_carry: Some(half_carried_sub8(a, b)),
         carry: Some(overflowed),
     });
+}
+
+fn set_indirect_hl(cpu: &mut Cpu, memory: &mut Memory, bit: Bit) {
+    let hl = cpu.read_register_wide(RegisterWide::HL); 
+    let value = memory.read(Address(hl));
+    let mask = 1 << bit as u8;
+    memory.write(Address(hl), util::set_bits(value, mask, mask));
 }
 
 fn sla_r8(cpu: &mut Cpu, r: Register) {
