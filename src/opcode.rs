@@ -1041,7 +1041,28 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x8E => Some(Opcode {
             mnemonic: "ADC A, [HL]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let a = cpu.read_register(Register::A);
+                let carry_bit = cpu.read_flags().carry as u8;
+                let hl = cpu.read_register_wide(RegisterWide::HL);
+                let hl_value = memory.read(Address(hl));
+                let b = hl_value.wrapping_add(carry_bit);
+                let (mut result, mut overflowed) = a.overflowing_add(b);
+
+                if cpu.read_flags().carry {
+                    let (carry_result, carry_overflowed) = result.overflowing_add(1);
+                    result = carry_result;
+                    overflowed |= carry_overflowed;
+                }
+
+                cpu.write_register(Register::A, result);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(result == 0),
+                    subtract: Some(false),
+                    half_carry: Some(half_carried_add8(a, b)),
+                    carry: Some(overflowed),
+                });
+            }),
         }),
         0x8F => Some(Opcode {
             mnemonic: "ADC A, A".to_string(),
