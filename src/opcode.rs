@@ -1609,7 +1609,21 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xDE => Some(Opcode {
             mnemonic: "SBC A, n8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let a = cpu.read_register(Register::A);
+                let carry_bit = cpu.read_flags().carry as u8;
+                let pc = cpu.read_register_wide(RegisterWide::PC);
+                let b = memory.read(Address(pc)).wrapping_add(carry_bit);
+
+                let (result, overflowed) = a.overflowing_sub(b);
+                cpu.write_register(Register::A, result);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(result == 0),
+                    subtract: Some(true),
+                    half_carry: Some(half_carried_sub8(a, b)),
+                    carry: Some(overflowed),
+                });
+            }),
         }),
         0xDF => Some(Opcode {
             mnemonic: "RST $18".to_string(),
