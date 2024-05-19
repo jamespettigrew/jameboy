@@ -1970,32 +1970,32 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x08 => Some(Opcode {
             mnemonic: "RRC B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rrc_r8(cpu, Register::B)),
         }),
         0x09 => Some(Opcode {
             mnemonic: "RRC C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rrc_r8(cpu, Register::C)),
         }),
         0x0A => Some(Opcode {
             mnemonic: "RRC D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rrc_r8(cpu, Register::D)),
         }),
         0x0B => Some(Opcode {
             mnemonic: "RRC E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rrc_r8(cpu, Register::E)),
         }),
         0x0C => Some(Opcode {
             mnemonic: "RRC H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rrc_r8(cpu, Register::H)),
         }),
         0x0D => Some(Opcode {
             mnemonic: "RRC L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rrc_r8(cpu, Register::L)),
         }),
         0x0E => Some(Opcode {
             mnemonic: "RRC [HL]".to_string(),
@@ -2005,7 +2005,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x0F => Some(Opcode {
             mnemonic: "RRC A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| rrc_r8(cpu, Register::A)),
         }),
         0x10 => Some(Opcode {
             mnemonic: "RL B".to_string(),
@@ -3530,6 +3530,19 @@ fn rlc_r8(cpu: &mut Cpu, r: Register) {
         subtract: Some(false),
         half_carry: Some(false),
         carry: Some(value & 0b1000_0000 != 0),
+    });
+    cpu.write_register(r, result);
+}
+
+fn rrc_r8(cpu: &mut Cpu, r: Register) {
+    let value = cpu.read_register(r);
+    let result = value.rotate_right(1);
+
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(false),
+        half_carry: Some(false),
+        carry: Some(value & 0b0000_0001 != 0),
     });
     cpu.write_register(r, result);
 }
