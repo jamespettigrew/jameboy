@@ -501,7 +501,7 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             mnemonic: "LD [HL], n8".to_string(),
             size_bytes: 2,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
-                let pc = cpu.read_register_wide(RegisterWide::SP);
+                let pc = cpu.read_register_wide(RegisterWide::PC);
                 let dst_value = cpu.read_register_wide(RegisterWide::HL);
                 let src_value = memory.read(Address(pc - 1));
                 memory.write(Address(dst_value), src_value);
