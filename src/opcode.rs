@@ -2130,32 +2130,32 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x28 => Some(Opcode {
             mnemonic: "SRA B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu, _| sra_r8(cpu, Register::B)),
         }),
         0x29 => Some(Opcode {
             mnemonic: "SRA C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu, _| sra_r8(cpu, Register::C)),
         }),
         0x2A => Some(Opcode {
             mnemonic: "SRA D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu, _| sra_r8(cpu, Register::D)),
         }),
         0x2B => Some(Opcode {
             mnemonic: "SRA E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu, _| sra_r8(cpu, Register::E)),
         }),
         0x2C => Some(Opcode {
             mnemonic: "SRA H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu, _| sra_r8(cpu, Register::H)),
         }),
         0x2D => Some(Opcode {
             mnemonic: "SRA L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu, _| sra_r8(cpu, Register::L)),
         }),
         0x2E => Some(Opcode {
             mnemonic: "SRA [HL]".to_string(),
@@ -2165,7 +2165,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0x2F => Some(Opcode {
             mnemonic: "SRA A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu, _| sra_r8(cpu, Register::A)),
         }),
         0x30 => Some(Opcode {
             mnemonic: "SWAP B".to_string(),
@@ -3601,6 +3601,24 @@ fn sla_r8(cpu: &mut Cpu, r: Register) {
         subtract: Some(false),
         half_carry: Some(false),
         carry: Some(util::bit(value, 7) != 0),
+    });
+
+    cpu.write_register(r, result)
+}
+
+fn sra_r8(cpu: &mut Cpu, r: Register) {
+    let value = cpu.read_register(r);
+    let result = value >> 1;
+
+    // Per the Game Boy CPU Manual, MSB shouldn't change
+    let result = result | (value & 0b1000_0000);
+
+    cpu.write_register(r, result);
+    cpu.write_flags(WriteFlags {
+        zero: Some(result == 0),
+        subtract: Some(false),
+        half_carry: Some(false),
+        carry: Some(util::bit(value, 0) != 0),
     });
 
     cpu.write_register(r, result)
