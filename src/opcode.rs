@@ -3239,22 +3239,23 @@ fn add_r8(cpu: &mut Cpu, r: Register) {
 
 fn adc_r8(cpu: &mut Cpu, r: Register) {
     let a = cpu.read_register(Register::A);
-    let carry_bit = cpu.read_flags().carry as u8;
-    let b = cpu.read_register(r).wrapping_add(carry_bit);
-    let (mut result, mut overflowed) = a.overflowing_add(b);
+    let b = cpu.read_register(r);
+    let (mut result, mut carried) = a.overflowing_add(b);
+    let mut half_carried = half_carried_add8(a, b);
 
     if cpu.read_flags().carry {
+        half_carried |= half_carried_add8(result, 1);
         let (carry_result, carry_overflowed) = result.overflowing_add(1);
+        carried |= carry_overflowed;
         result = carry_result;
-        overflowed |= carry_overflowed;
     }
 
     cpu.write_register(Register::A, result);
     cpu.write_flags(WriteFlags {
         zero: Some(result == 0),
         subtract: Some(false),
-        half_carry: Some(half_carried_add8(a, b)),
-        carry: Some(overflowed),
+        half_carry: Some(half_carried),
+        carry: Some(carried),
     });
 }
 
