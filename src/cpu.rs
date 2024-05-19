@@ -121,7 +121,11 @@ impl Cpu {
 
     pub fn write_register_wide(&mut self, r: RegisterWide, value: u16) {
         match r {
-            RegisterWide::AF => (self.a, self.f) = util::u16_to_u8(value),
+            RegisterWide::AF => {
+                let (msb, lsb) = util::u16_to_u8(value);
+                self.a = msb;
+                self.f = lsb & 0b1111_0000; // Can only write to upper nibble of F register
+            }
             RegisterWide::BC => (self.b, self.c) = util::u16_to_u8(value),
             RegisterWide::DE => (self.d, self.e) = util::u16_to_u8(value),
             RegisterWide::HL => (self.h, self.l) = util::u16_to_u8(value),
