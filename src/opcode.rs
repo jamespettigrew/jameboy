@@ -1775,7 +1775,12 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xF2 => Some(Opcode {
             mnemonic: "LD A, [C]".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let c = cpu.read_register(Register::C);
+                let address = util::u8_to_u16(0xFF, c);
+                let value = memory.read(Address(address));
+                cpu.write_register(Register::A, value);
+            })
         }),
         0xF3 => Some(Opcode {
             mnemonic: "DI".to_string(),
