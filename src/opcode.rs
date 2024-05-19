@@ -1668,16 +1668,24 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             size_bytes: 2,
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
                 let a = cpu.read_register(Register::A);
-                let carry_bit = cpu.read_flags().carry as u8;
                 let pc = cpu.read_register_wide(RegisterWide::PC);
-                let b = memory.read(Address(pc)).wrapping_add(carry_bit);
+                let imm = memory.read(Address(pc - 1));
 
-                let (result, overflowed) = a.overflowing_sub(b);
+                let (mut result, mut overflowed) = a.overflowing_sub(imm);
+                let mut half_carried = util::half_carried_sub8(a, imm);
+                
+                if cpu.read_flags().carry {
+                    half_carried |= util::half_carried_sub8(result, 1);
+                    let (carry_result, carry_overflowed) = result.overflowing_sub(1);
+                    overflowed |= carry_overflowed;
+                    result = carry_result;
+                }
+
                 cpu.write_register(Register::A, result);
                 cpu.write_flags(WriteFlags {
                     zero: Some(result == 0),
                     subtract: Some(true),
-                    half_carry: Some(half_carried_sub8(a, b)),
+                    half_carry: Some(half_carried),
                     carry: Some(overflowed),
                 });
             }),
