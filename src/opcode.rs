@@ -468,7 +468,14 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x37 => Some(Opcode {
             mnemonic: "SCF ".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| {
+                cpu.write_flags(WriteFlags {
+                    zero: None,
+                    subtract: Some(false),
+                    half_carry: Some(false),
+                    carry: Some(true),
+                });
+            }),
         }),
         0x38 => Some(Opcode {
             mnemonic: "JR C, e8".to_string(),
