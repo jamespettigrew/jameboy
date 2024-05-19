@@ -92,6 +92,15 @@ mod tests {
     }
 
     #[test]
+    fn test_half_carried_add16() {
+        assert_eq!(false, half_carried_add16(0b0000_0000_0000_0000, 0b0000_0000_0000_0000));
+        assert_eq!(false, half_carried_add16(0b0000_0000_0000_0001, 0b0000_0000_0000_0000));
+        assert_eq!(false, half_carried_add16(0b0000_0000_0000_0000, 0b0000_0000_0000_0001));
+        assert_eq!(true, half_carried_add16(0b0000_0110_0000_0000, 0b0000_1100_0000_0000));
+        assert_eq!(true, half_carried_add16(0b0000_1111_1111_1111, 0b0000_1111_1111_1111));
+    }
+
+    #[test]
     fn test_half_carried_add8() {
         assert_eq!(false, half_carried_add8(0b00000000, 0b00000000));
         assert_eq!(false, half_carried_add8(0b00000000, 0b00000001));
