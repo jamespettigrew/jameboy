@@ -529,7 +529,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x3F => Some(Opcode {
             mnemonic: "CCF ".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| {
+                let flags = cpu.read_flags();
+                cpu.write_flags(WriteFlags {
+                    zero: None,
+                    subtract: Some(false),
+                    half_carry: Some(false),
+                    carry: Some(!flags.carry),
+                });
+            }),
         }),
         0x40 => Some(Opcode {
             mnemonic: "LD B, B".to_string(),
