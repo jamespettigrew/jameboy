@@ -138,7 +138,18 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x0F => Some(Opcode {
             mnemonic: "RRCA ".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| {
+                let value = cpu.read_register(Register::A);
+                let result = value.rotate_right(1);
+
+                cpu.write_flags(WriteFlags {
+                    zero: Some(false),
+                    subtract: Some(false),
+                    half_carry: Some(false),
+                    carry: Some(value & 0b0000_0001 != 0),
+                });
+                cpu.write_register(Register::A, result);
+            }),
         }),
         0x10 => Some(Opcode {
             mnemonic: "STOP n8".to_string(),
