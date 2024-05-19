@@ -333,7 +333,38 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0x27 => Some(Opcode {
             mnemonic: "DAA ".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let a = cpu.read_register(Register::A);
+                let half_carry = cpu.read_flags().half_carry;
+                let carry = cpu.read_flags().carry;
+                let subtract = cpu.read_flags().subtract;
+
+                let mut offset = 0_u8;
+                if (!subtract && a & 0xF > 0x09) || half_carry {
+                    offset |= 0x06;
+                }
+
+                let mut carried = false;
+                if (!subtract && a > 0x99) || carry {
+                    offset |= 0x60;
+                    carried = true;
+                }
+
+
+                let result = if subtract {
+                    a.wrapping_sub(offset)
+                } else {
+                    a.wrapping_add(offset)
+                };
+
+                cpu.write_register(Register::A, result);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(result == 0),
+                    subtract: None,
+                    half_carry: Some(false),
+                    carry: Some(carried),
+                });
+            }),
         }),
         0x28 => Some(Opcode {
             mnemonic: "JR Z, e8".to_string(),
