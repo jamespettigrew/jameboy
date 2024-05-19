@@ -1686,7 +1686,33 @@ pub fn decode(byte: u8) -> Option<Opcode> {
         0xE8 => Some(Opcode {
             mnemonic: "ADD SP, e8".to_string(),
             size_bytes: 2,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
+                let pc = cpu.read_register_wide(RegisterWide::PC);
+                let imm = memory.read(Address(pc - 1));
+                let sp = cpu.read_register_wide(RegisterWide::SP);
+
+                // Unintuitively, even though we're adding to a 16 bit integer, the half-carry
+                // flag should be based on the low byte i.e. set when carry occurs from bit 3
+                // to bit 4.
+                //
+                // See:
+                // https://stackoverflow.com/questions/57958631/game-boy-half-carry-flag-and-16-bit-instructions-especially-opcode-0xe8/57978555#57978555
+                let half_carried = util::half_carried_add8(sp as u8, imm);
+
+                // Similar to the half-carry, for the carry we need to look at only the low byte
+                let sp_low_byte = (sp & 0xFF) as u8;
+                let (_, carried) = sp_low_byte.overflowing_add(imm);
+
+                let sp = sp.wrapping_add_signed((imm as i8).into());
+
+                cpu.write_register_wide(RegisterWide::SP, sp);
+                cpu.write_flags(WriteFlags {
+                    zero: Some(false),
+                    subtract: Some(false),
+                    half_carry: Some(half_carried),
+                    carry: Some(carried),
+                });
+            })
         }),
         0xE9 => Some(Opcode {
             mnemonic: "JP HL".to_string(),
