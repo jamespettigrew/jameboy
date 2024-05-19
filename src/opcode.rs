@@ -1532,15 +1532,15 @@ pub fn decode(byte: u8) -> Option<Opcode> {
             handler: Some(|cpu: &mut Cpu, memory: &mut Memory| {
                 let a = cpu.read_register(Register::A);
                 let pc = cpu.read_register_wide(RegisterWide::PC);
-                let n = memory.read(Address(pc - 1));
-                let (mut result, mut overflowed) = a.overflowing_add(n);
-                let mut half_carried = util::half_carried_add8(a, n);
+                let imm = memory.read(Address(pc - 1));
+                let (mut result, mut overflowed) = a.overflowing_add(imm);
+                let mut half_carried = util::half_carried_add8(a, imm);
 
                 if cpu.read_flags().carry {
+                    half_carried |= util::half_carried_add8(result, 1);
                     let (carry_result, carry_overflowed) = result.overflowing_add(1);
-                    result = carry_result;
                     overflowed |= carry_overflowed;
-                    half_carried = util::half_carried_add8(a, n + 1);
+                    result = carry_result;
                 }
 
                 cpu.write_register(Register::A, result);
