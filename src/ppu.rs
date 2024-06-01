@@ -350,6 +350,35 @@ impl Ppu {
         }
     }
 
+    pub fn get_tile_buffer(&self, memory: &Memory) -> image::GrayImage {
+        let tile_count = 384usize;
+        let width_in_tiles = 12usize;
+        let bytes_per_tile = 16usize;
+
+        let image_width = width_in_tiles * TILE_DIMENSION;
+        let image_height = (tile_count / width_in_tiles) * TILE_DIMENSION;
+        let mut tile_buffer = GrayImage::new(image_width as u32, image_height as u32);
+
+        let tile_data = memory.read_range(Address(0x8000), (tile_count * bytes_per_tile) as u16);
+        for (tile_idx, tile_chunk) in tile_data.chunks(bytes_per_tile).enumerate() {
+            let offset_x = (tile_idx % width_in_tiles) * TILE_DIMENSION;
+            let offset_y = (tile_idx / width_in_tiles) * TILE_DIMENSION;
+
+            for (row_idx, line_bytes) in tile_chunk.chunks(2).enumerate() {
+                let pixel_colours = line_bytes_to_pixel_colours(line_bytes[0], line_bytes[1]);
+                for (column_idx, pc) in pixel_colours.iter().enumerate() {
+                    tile_buffer.put_pixel(
+                        (offset_x + column_idx) as u32,
+                        (offset_y + row_idx) as u32,
+                        pc.to_grayscale(),
+                    );
+                }
+            }
+        }
+
+        tile_buffer
+    }
+
     pub fn step(&mut self, memory: &mut Memory) {
         let ppu_mode = read_ppu_mode(memory);
         let ly = memory.read(Address(ADDRESS_LY));
