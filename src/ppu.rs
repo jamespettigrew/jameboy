@@ -47,8 +47,8 @@ enum Palette {
 
 fn read_bg_window_tile_area(memory: &Memory) -> BgWindowTileArea {
     match bit(memory.read(Address(ADDRESS_LCDC_REGISTER)), 4) == 0 {
-        true => BgWindowTileArea::Area8000,
-        false => BgWindowTileArea::Area8800,
+        false => BgWindowTileArea::Area8000,
+        true => BgWindowTileArea::Area8800,
     }
 }
 
@@ -95,7 +95,14 @@ fn write_ppu_mode(memory: &mut Memory, ppu_mode: PpuMode) {
     );
 }
 
-#[derive(Copy, Clone)]
+fn fetch_tile_data_address(tile_data_area: BgWindowTileArea, tile_number: u8, ly: u16, scy: u16) -> u16 {
+    let tile_offset = tile_number as u16 * 16;
+    let tile_byte_offset = 2 * ((ly as u16 + scy) % 8) as u16;
+    
+    (tile_data_area as u16) + tile_offset + tile_byte_offset
+}
+
+#[derive(Copy, Clone, Debug)]
 enum ObjectBackgroundPriority {
     Object,     // Sprite is always rendered above background
     Background, // Background colors 1-3 overlay sprite, sprite is still rendered above color 0
@@ -106,7 +113,7 @@ enum SpriteHeight {
     Tall = 16,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct Sprite {
     y_position: u8,
     x_position: u8,
@@ -122,7 +129,7 @@ impl Sprite {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct SpriteFlags {
     priority: ObjectBackgroundPriority,
     y_flip: bool,
@@ -206,9 +213,10 @@ impl BackgroundFetcher {
     }
 
     fn step(&mut self, memory: &Memory) {
-        let ly = memory.read(Address(ADDRESS_LY));
+        let ly = memory.read(Address(ADDRESS_LY)) as u16;
         let scy = memory.read(Address(ADDRESS_SCY)) as u16;
         let scx = memory.read(Address(ADDRESS_SCX)) as u16;
+        let tile_data_area = read_bg_window_tile_area(memory);
 
         match &self.fetch_step {
             FetchStep::Paused => {}
@@ -222,19 +230,14 @@ impl BackgroundFetcher {
                 self.fetch_step = FetchStep::FetchTileLow(tile_number);
             }
             FetchStep::FetchTileLow(tile_number) => {
-                let tile_data_area = 0x8000 as u16; // Could also be 0x8800, depending upon LCDC bit 4;
-                let tile_offset = *tile_number as u16 * 16;
-                let tile_byte_offset = 2 * ((ly as u16 + scy) % 8) as u16;
-                let address = Address(tile_data_area + tile_offset + tile_byte_offset);
-                let tile_data_low = memory.read(address);
+                let address = fetch_tile_data_address(tile_data_area, *tile_number, ly, scy);
+                let tile_data_low = memory.read(Address(address));
                 self.fetch_step = FetchStep::FetchTileHigh(*tile_number, tile_data_low);
             }
             FetchStep::FetchTileHigh(tile_number, tile_data_low) => {
-                let tile_data_area = 0x8000 as u16; // Could also be 0x8800, depending upon LCDC bit 4;
-                let tile_offset = *tile_number as u16 * 16;
-                let tile_byte_offset = 2 * ((ly as u16 + scy) % 8) as u16;
-                let address = Address(tile_data_area + tile_offset + tile_byte_offset + 1);
-                let tile_data_high = memory.read(address);
+                let address = fetch_tile_data_address(tile_data_area, *tile_number, ly, scy);
+                let tile_data_high = memory.read(Address(address + 1));
+
                 let pixel_colours = line_bytes_to_pixel_colours(*tile_data_low, tile_data_high);
                 self.fetch_step = FetchStep::Push(pixel_colours);
             }
@@ -273,8 +276,9 @@ impl SpriteFetcher {
     }
 
     fn step(&mut self, memory: &Memory, ppu_x_position: u8) {
-        let ly = memory.read(Address(ADDRESS_LY));
+        let ly = memory.read(Address(ADDRESS_LY)) as u16;
         let scy = memory.read(Address(ADDRESS_SCY)) as u16;
+        let tile_data_area = BgWindowTileArea::Area8000;
 
         match &self.fetch_step {
             FetchStep::Paused => {}
@@ -283,17 +287,15 @@ impl SpriteFetcher {
                 self.fetch_step = FetchStep::FetchTileLow(sprite.tile_number);
             }
             FetchStep::FetchTileLow(tile_number) => {
-                let offset = 2 * ((ly as u16 + scy) % 8);
-                let address = Address(0x8000 + (*tile_number * 16) as u16 + offset as u16);
-                let tile_data_low = memory.read(address);
+                let address = fetch_tile_data_address(tile_data_area, *tile_number, ly, scy);
+                let tile_data_low = memory.read(Address(address));
                 self.fetch_step = FetchStep::FetchTileHigh(*tile_number, tile_data_low);
             }
             FetchStep::FetchTileHigh(tile_number, tile_data_low) => {
-                let offset = 2 * ((ly as u16 + scy) % 8);
-                let address = Address(0x8000 + (*tile_number * 16) as u16 + offset as u16 + 1);
-                let tile_data_high = memory.read(address);
-                let pixel_colours = line_bytes_to_pixel_colours(tile_data_high, *tile_data_low);
+                let address = fetch_tile_data_address(tile_data_area, *tile_number, ly, scy);
+                let tile_data_high = memory.read(Address(address + 1));
 
+                let pixel_colours = line_bytes_to_pixel_colours(*tile_data_low, tile_data_high);
                 self.fetch_step = FetchStep::Push(pixel_colours);
             }
             FetchStep::Push(pixel_colours) => {
@@ -394,7 +396,8 @@ impl Ppu {
                     let sprite_memory = memory.read_range(sprite_address, 4);
                     let sprite = Sprite::from(sprite_memory);
                     let sprite_height = SpriteHeight::Normal; // TODO: fetch from register
-                                                              // Render conditions for sprite
+                    
+                    // Render conditions for sprite
                     if self.sprite_buffer.len() < 10 && sprite.visible(ly, sprite_height) {
                         self.sprite_buffer.push(sprite);
                     }
