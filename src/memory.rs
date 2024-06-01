@@ -46,12 +46,6 @@ impl Memory {
             return last_transferred_byte;
         }
 
-        // TODO: Remove this. It spoofs the joypad input so that Tetris functions boots without
-        // a joypad implementation.
-        if address.0 == 0xFF00 {
-            return 0xFF;
-        }
-
         if address.0 == 0xFF44 {
             // Uncomment the following line if testing with gameboy-doctor
             // return 0x90;

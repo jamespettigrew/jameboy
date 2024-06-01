@@ -1,5 +1,6 @@
 mod cpu;
 mod disassembly;
+mod joypad;
 mod memory;
 mod opcode;
 mod ppu;
@@ -100,10 +101,11 @@ fn main() {
         let last_render = std::time::Instant::now();
         while std::time::Instant::now()
             .duration_since(last_render)
-            .as_micros()
+            .as_millis()
             < goal_render_ms
         {
             if let State::Running = jameboy.state {
+                joypad::handle_input(ctx, &mut jameboy.memory);
                 jameboy.step();
             }
         }
