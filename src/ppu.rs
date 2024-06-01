@@ -391,7 +391,7 @@ impl Ppu {
             PpuMode::OamScan => {
                 // Each sprite takes 2 dots to fetch, skip odd dots.
                 if self.dot % 2 == 0 {
-                    let byte_offset = self.dot * 4;
+                    let byte_offset = (self.dot / 2) * 4;
                     let sprite_address = Address(0xFE00 + byte_offset as u16);
                     let sprite_memory = memory.read_range(sprite_address, 4);
                     let sprite = Sprite::from(sprite_memory);
