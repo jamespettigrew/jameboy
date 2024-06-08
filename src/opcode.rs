@@ -3246,7 +3246,6 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
             size_bytes: 1,
             handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Seven, Register::A)),
         }),
-        _ => None,
     }
 }
 
