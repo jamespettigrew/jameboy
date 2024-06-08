@@ -2929,32 +2929,32 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xC0 => Some(Opcode {
             mnemonic: "SET 0, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Zero, Register::B)),
         }),
         0xC1 => Some(Opcode {
             mnemonic: "SET 0, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Zero, Register::C)),
         }),
         0xC2 => Some(Opcode {
             mnemonic: "SET 0, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Zero, Register::D)),
         }),
         0xC3 => Some(Opcode {
             mnemonic: "SET 0, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Zero, Register::E)),
         }),
         0xC4 => Some(Opcode {
             mnemonic: "SET 0, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Zero, Register::H)),
         }),
         0xC5 => Some(Opcode {
             mnemonic: "SET 0, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Zero, Register::L)),
         }),
         0xC6 => Some(Opcode {
             mnemonic: "SET 0, [HL]".to_string(),
@@ -2964,37 +2964,37 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xC7 => Some(Opcode {
             mnemonic: "SET 0, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Zero, Register::A)),
         }),
         0xC8 => Some(Opcode {
             mnemonic: "SET 1, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::One, Register::B)),
         }),
         0xC9 => Some(Opcode {
             mnemonic: "SET 1, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::One, Register::C)),
         }),
         0xCA => Some(Opcode {
             mnemonic: "SET 1, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::One, Register::D)),
         }),
         0xCB => Some(Opcode {
             mnemonic: "SET 1, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::One, Register::E)),
         }),
         0xCC => Some(Opcode {
             mnemonic: "SET 1, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::One, Register::H)),
         }),
         0xCD => Some(Opcode {
             mnemonic: "SET 1, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::One, Register::L)),
         }),
         0xCE => Some(Opcode {
             mnemonic: "SET 1, [HL]".to_string(),
@@ -3004,37 +3004,37 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xCF => Some(Opcode {
             mnemonic: "SET 1, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::One, Register::A)),
         }),
         0xD0 => Some(Opcode {
             mnemonic: "SET 2, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Two, Register::B)),
         }),
         0xD1 => Some(Opcode {
             mnemonic: "SET 2, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Two, Register::C)),
         }),
         0xD2 => Some(Opcode {
             mnemonic: "SET 2, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Two, Register::D)),
         }),
         0xD3 => Some(Opcode {
             mnemonic: "SET 2, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Two, Register::E)),
         }),
         0xD4 => Some(Opcode {
             mnemonic: "SET 2, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Two, Register::H)),
         }),
         0xD5 => Some(Opcode {
             mnemonic: "SET 2, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Two, Register::L)),
         }),
         0xD6 => Some(Opcode {
             mnemonic: "SET 2, [HL]".to_string(),
@@ -3044,37 +3044,37 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xD7 => Some(Opcode {
             mnemonic: "SET 2, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Two, Register::A)),
         }),
         0xD8 => Some(Opcode {
             mnemonic: "SET 3, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Three, Register::B)),
         }),
         0xD9 => Some(Opcode {
             mnemonic: "SET 3, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Three, Register::C)),
         }),
         0xDA => Some(Opcode {
             mnemonic: "SET 3, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Three, Register::D)),
         }),
         0xDB => Some(Opcode {
             mnemonic: "SET 3, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Three, Register::E)),
         }),
         0xDC => Some(Opcode {
             mnemonic: "SET 3, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Three, Register::H)),
         }),
         0xDD => Some(Opcode {
             mnemonic: "SET 3, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Three, Register::L)),
         }),
         0xDE => Some(Opcode {
             mnemonic: "SET 3, [HL]".to_string(),
@@ -3084,37 +3084,37 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xDF => Some(Opcode {
             mnemonic: "SET 3, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Three, Register::A)),
         }),
         0xE0 => Some(Opcode {
             mnemonic: "SET 4, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Four, Register::B)),
         }),
         0xE1 => Some(Opcode {
             mnemonic: "SET 4, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Four, Register::C)),
         }),
         0xE2 => Some(Opcode {
             mnemonic: "SET 4, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Four, Register::D)),
         }),
         0xE3 => Some(Opcode {
             mnemonic: "SET 4, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Four, Register::E)),
         }),
         0xE4 => Some(Opcode {
             mnemonic: "SET 4, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Four, Register::H)),
         }),
         0xE5 => Some(Opcode {
             mnemonic: "SET 4, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Four, Register::L)),
         }),
         0xE6 => Some(Opcode {
             mnemonic: "SET 4, [HL]".to_string(),
@@ -3124,37 +3124,37 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xE7 => Some(Opcode {
             mnemonic: "SET 4, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Four, Register::A)),
         }),
         0xE8 => Some(Opcode {
             mnemonic: "SET 5, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Five, Register::B)),
         }),
         0xE9 => Some(Opcode {
             mnemonic: "SET 5, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Five, Register::C)),
         }),
         0xEA => Some(Opcode {
             mnemonic: "SET 5, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Five, Register::D)),
         }),
         0xEB => Some(Opcode {
             mnemonic: "SET 5, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Five, Register::E)),
         }),
         0xEC => Some(Opcode {
             mnemonic: "SET 5, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Five, Register::H)),
         }),
         0xED => Some(Opcode {
             mnemonic: "SET 5, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Five, Register::L)),
         }),
         0xEE => Some(Opcode {
             mnemonic: "SET 5, [HL]".to_string(),
@@ -3164,37 +3164,37 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xEF => Some(Opcode {
             mnemonic: "SET 5, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Five, Register::A)),
         }),
         0xF0 => Some(Opcode {
             mnemonic: "SET 6, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Six, Register::B)),
         }),
         0xF1 => Some(Opcode {
             mnemonic: "SET 6, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Six, Register::C)),
         }),
         0xF2 => Some(Opcode {
             mnemonic: "SET 6, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Six, Register::D)),
         }),
         0xF3 => Some(Opcode {
             mnemonic: "SET 6, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Six, Register::E)),
         }),
         0xF4 => Some(Opcode {
             mnemonic: "SET 6, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Six, Register::H)),
         }),
         0xF5 => Some(Opcode {
             mnemonic: "SET 6, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Six, Register::L)),
         }),
         0xF6 => Some(Opcode {
             mnemonic: "SET 6, [HL]".to_string(),
@@ -3204,37 +3204,37 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xF7 => Some(Opcode {
             mnemonic: "SET 6, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Six, Register::A)),
         }),
         0xF8 => Some(Opcode {
             mnemonic: "SET 7, B".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Seven, Register::B)),
         }),
         0xF9 => Some(Opcode {
             mnemonic: "SET 7, C".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Seven, Register::C)),
         }),
         0xFA => Some(Opcode {
             mnemonic: "SET 7, D".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Seven, Register::D)),
         }),
         0xFB => Some(Opcode {
             mnemonic: "SET 7, E".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Seven, Register::E)),
         }),
         0xFC => Some(Opcode {
             mnemonic: "SET 7, H".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Seven, Register::H)),
         }),
         0xFD => Some(Opcode {
             mnemonic: "SET 7, L".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Seven, Register::L)),
         }),
         0xFE => Some(Opcode {
             mnemonic: "SET 7, [HL]".to_string(),
@@ -3244,7 +3244,7 @@ pub fn decode_prefixed(byte: u8) -> Option<Opcode> {
         0xFF => Some(Opcode {
             mnemonic: "SET 7, A".to_string(),
             size_bytes: 1,
-            handler: None,
+            handler: Some(|cpu: &mut Cpu, _| set_r8(cpu, Bit::Seven, Register::A)),
         }),
         _ => None,
     }
@@ -3639,6 +3639,12 @@ fn set_indirect_hl(cpu: &mut Cpu, memory: &mut Memory, bit: Bit) {
     let value = memory.read(Address(hl));
     let mask = 1 << bit as u8;
     memory.write(Address(hl), util::set_bits(value, mask, mask));
+}
+
+fn set_r8(cpu: &mut Cpu, bit: Bit, register: Register) {
+    let value = cpu.read_register(register);
+    let mask = 1 << bit as u8;
+    cpu.write_register(register, util::set_bits(value, mask, mask));
 }
 
 fn sla_r8(cpu: &mut Cpu, r: Register) {
