@@ -9,6 +9,7 @@ const SCANLINES_PER_FRAME: usize = 153;
 const SCANLINES_PER_VERTICAL_BLANK: usize = 10;
 const PIXELS_PER_SCANLINE: u8 = 160;
 const TILE_DIMENSION: usize = 8;
+const TILE_BYTES: u16 = 16;
 
 const ADDRESS_INTERRUPT_FLAG_REGISTER: u16 = 0xFF0F;
 const ADDRESS_LCDC_REGISTER: u16 = 0xFF40;
@@ -18,6 +19,8 @@ const ADDRESS_SCX: u16 = 0xFF43;
 const ADDRESS_LY: u16 = 0xFF44;
 const ADDRESS_LYC: u16 = 0xFF45;
 const ADDRESS_BGP: u16 = 0xFF47;
+const ADDRESS_WY: u16 = 0xFF4A;
+const ADDRESS_WX: u16 = 0xFF4B;
 
 #[repr(u16)]
 enum BgWindowTileArea {
@@ -26,7 +29,7 @@ enum BgWindowTileArea {
 }
 
 #[repr(u16)]
-enum BgTileMapArea {
+enum TileMapArea {
     Area9800 = 0x9800,
     Area9C00 = 0x9C00,
 }
@@ -45,6 +48,17 @@ enum Palette {
     Obp1,
 }
 
+fn read_window_tile_map_area(memory: &Memory) -> TileMapArea {
+    match bit(memory.read(Address(ADDRESS_LCDC_REGISTER)), 6) == 0 {
+        true => TileMapArea::Area9800,
+        false => TileMapArea::Area9C00,
+    }
+}
+
+fn read_window_enabled(memory: &Memory) -> bool {
+    bit(memory.read(Address(ADDRESS_LCDC_REGISTER)), 5) == 1
+}
+
 fn read_bg_window_tile_area(memory: &Memory) -> BgWindowTileArea {
     match bit(memory.read(Address(ADDRESS_LCDC_REGISTER)), 4) == 0 {
         false => BgWindowTileArea::Area8000,
@@ -52,11 +66,15 @@ fn read_bg_window_tile_area(memory: &Memory) -> BgWindowTileArea {
     }
 }
 
-fn read_bg_tile_map_area(memory: &Memory) -> BgTileMapArea {
+fn read_bg_tile_map_area(memory: &Memory) -> TileMapArea {
     match bit(memory.read(Address(ADDRESS_LCDC_REGISTER)), 3) == 0 {
-        true => BgTileMapArea::Area9800,
-        false => BgTileMapArea::Area9C00,
+        true => TileMapArea::Area9800,
+        false => TileMapArea::Area9C00,
     }
+}
+
+fn read_bg_window_enable(memory: &Memory) -> bool {
+    bit(memory.read(Address(ADDRESS_LCDC_REGISTER)), 0) != 0
 }
 
 fn read_ppu_mode(memory: &Memory) -> PpuMode {
@@ -95,9 +113,16 @@ fn write_ppu_mode(memory: &mut Memory, ppu_mode: PpuMode) {
     );
 }
 
-fn fetch_tile_data_address(tile_data_area: BgWindowTileArea, tile_number: u8, ly: u16, scy: u16) -> u16 {
-    let tile_offset = tile_number as u16 * 16;
+fn fetch_non_window_tile_data_address(tile_data_area: BgWindowTileArea, tile_number: u8, ly: u16, scy: u16) -> u16 {
+    let tile_offset = tile_number as u16 * TILE_BYTES;
     let tile_byte_offset = 2 * ((ly as u16 + scy) % 8) as u16;
+    
+    (tile_data_area as u16) + tile_offset + tile_byte_offset
+}
+
+fn fetch_window_tile_data_address(tile_data_area: BgWindowTileArea, tile_number: u8, window_line: u8) -> u16 {
+    let tile_offset = tile_number as u16 * TILE_BYTES;
+    let tile_byte_offset = ((2 * window_line) % 8) as u16;
     
     (tile_data_area as u16) + tile_offset + tile_byte_offset
 }
@@ -189,7 +214,7 @@ enum FetchStep {
     Paused,
     FetchTileNumber,
     FetchTileLow(u8),
-    FetchTileHigh(u8, u8),
+    FetchTileHigh(u16, u8),
     Push([PixelColour; TILE_DIMENSION]),
 }
 
@@ -212,32 +237,35 @@ impl BackgroundFetcher {
         self.fetch_step = FetchStep::FetchTileNumber;
     }
 
-    fn step(&mut self, memory: &Memory) {
+    fn step(&mut self, memory: &Memory, scanline_x_position: u8) {
         let ly = memory.read(Address(ADDRESS_LY)) as u16;
         let scy = memory.read(Address(ADDRESS_SCY)) as u16;
         let scx = memory.read(Address(ADDRESS_SCX)) as u16;
+        let wy = memory.read(Address(ADDRESS_WY)) as u16;
+        let wx = memory.read(Address(ADDRESS_WX)) as u16;
         let tile_data_area = read_bg_window_tile_area(memory);
 
         match &self.fetch_step {
             FetchStep::Paused => {}
             FetchStep::FetchTileNumber => {
-                // TODO: Are we fetching BG or window tile?
-                let tile_map_area = read_bg_tile_map_area(memory);
+                let is_window_tile = read_window_enabled(memory) && (scanline_x_position as u16) >= wx - 7 && ly >= wy;
+                let tile_map_area = if is_window_tile { read_window_tile_map_area(memory) } else { read_bg_tile_map_area(memory) };
+
                 let y_offset = (32 * (((ly as u16 + scy) & 0xFF) / 8)) & 0x3FF;
-                let x_offset = (self.x_position as u16 + (scx & 0x1F)) & 0x3FF;
+                let scx_offset = (scx & 0x1F);
+                let x_offset = (self.x_position as u16 + scx_offset) & 0x3FF;
+
                 let tile_number_address = tile_map_area as u16 + x_offset + y_offset;
                 let tile_number = memory.read(Address(tile_number_address));
                 self.fetch_step = FetchStep::FetchTileLow(tile_number);
             }
             FetchStep::FetchTileLow(tile_number) => {
-                let address = fetch_tile_data_address(tile_data_area, *tile_number, ly, scy);
+                let address = fetch_non_window_tile_data_address(tile_data_area, *tile_number, ly, scy);
                 let tile_data_low = memory.read(Address(address));
-                self.fetch_step = FetchStep::FetchTileHigh(*tile_number, tile_data_low);
+                self.fetch_step = FetchStep::FetchTileHigh(address, tile_data_low);
             }
-            FetchStep::FetchTileHigh(tile_number, tile_data_low) => {
-                let address = fetch_tile_data_address(tile_data_area, *tile_number, ly, scy);
-                let tile_data_high = memory.read(Address(address + 1));
-
+            FetchStep::FetchTileHigh(tile_data_low_address, tile_data_low) => {
+                let tile_data_high = memory.read(Address(tile_data_low_address + 1));
                 let pixel_colours = line_bytes_to_pixel_colours(*tile_data_low, tile_data_high);
                 self.fetch_step = FetchStep::Push(pixel_colours);
             }
@@ -287,14 +315,12 @@ impl SpriteFetcher {
                 self.fetch_step = FetchStep::FetchTileLow(sprite.tile_number);
             }
             FetchStep::FetchTileLow(tile_number) => {
-                let address = fetch_tile_data_address(tile_data_area, *tile_number, ly, scy);
+                let address = fetch_non_window_tile_data_address(tile_data_area, *tile_number, ly, scy);
                 let tile_data_low = memory.read(Address(address));
-                self.fetch_step = FetchStep::FetchTileHigh(*tile_number, tile_data_low);
+                self.fetch_step = FetchStep::FetchTileHigh(address, tile_data_low);
             }
-            FetchStep::FetchTileHigh(tile_number, tile_data_low) => {
-                let address = fetch_tile_data_address(tile_data_area, *tile_number, ly, scy);
-                let tile_data_high = memory.read(Address(address + 1));
-
+            FetchStep::FetchTileHigh(tile_data_low_address, tile_data_low) => {
+                let tile_data_high = memory.read(Address(tile_data_low_address + 1));
                 let pixel_colours = line_bytes_to_pixel_colours(*tile_data_low, tile_data_high);
                 self.fetch_step = FetchStep::Push(pixel_colours);
             }

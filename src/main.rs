@@ -42,9 +42,7 @@ impl Jameboy {
     fn init() -> Self {
         Self {
             cpu: Cpu::init(),
-            debugger: Debugger {
-                run_to_pc: None,
-            },
+            debugger: Debugger { run_to_pc: None },
             memory: Memory::init(),
             ppu: Ppu::init(),
             state: State::Paused,
@@ -93,11 +91,11 @@ fn main() {
     map_rom_into_memory(&rom, &mut jameboy.memory);
     let disassembly = disassembly::disassemble(&rom);
 
-    let goal_render_ms = 128_u128;
+    let goal_render_ms = 16_u128;
     eframe::run_simple_native("jameboy", options, move |ctx, _frame| {
         ctx.request_repaint();
         render(ctx, &mut jameboy, &disassembly);
-
+        
         let last_render = std::time::Instant::now();
         while std::time::Instant::now()
             .duration_since(last_render)
@@ -271,7 +269,11 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruct
                             ui.label(label);
                         });
 
-                        if row.response().interact(egui::Sense::click()).double_clicked() {
+                        if row
+                            .response()
+                            .interact(egui::Sense::click())
+                            .double_clicked()
+                        {
                             jameboy.state = State::Running;
                             jameboy.debugger.run_to_pc = Some(instruction.address.0);
                         }
@@ -347,7 +349,12 @@ fn render(ctx: &egui::Context, jameboy: &mut Jameboy, disassembly: &Vec<Instruct
         });
 
         let image = &jameboy.ppu.image_buffer;
-        let image = &image::imageops::resize(image, image.width() * 3, image.height() * 3, image::imageops::FilterType::Nearest);
+        let image = &image::imageops::resize(
+            image,
+            image.width() * 3,
+            image.height() * 3,
+            image::imageops::FilterType::Nearest,
+        );
         let size = (image.width() as usize, image.height() as usize);
         let image = ColorImage::from_gray(size.into(), image);
         let texture = ctx.load_texture("LCD", image, egui::TextureOptions::default());

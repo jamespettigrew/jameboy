@@ -1,0 +1,36 @@
+* Tetris FF85 JR Z loop
+** Opcode sequence
+02ED: F0 85
+02EF: A7
+02F0: 28
+
+Load $FF00 + (0x0085) into A
+-> LDH A
+-> AND A
+-> JR Z (jumps back to start)
+
+** Appears to be due to improper VBlank interrupt handling
+https://www.reddit.com/r/EmuDev/comments/6sxb09/gb_tetris_stuck_at_copyright_screen/?rdt=60795
+
+- Confirmed VBlank handler never being called
+
+
+- Interrupt handler wasn't being called
+  - Due to faulty delayed enable logic, now fixed
+    - VBlank handler still not being called
+      - Request flag is set
+      - Enable register is 9 == 0b0000_1001
+      - Should be working
+      - My code is showing both bits as 0 wat
+      - Actually was/is 0 at the time of the interrupt execution
+
+ - Divergence between Sameboy and Jameboy before PC $29aa
+   - Loading joypad register state!
+
+     WORKING!!!!
+
+* Sprite rendering
+** We're now able to display a warped sprite for the 1P vs 2P selection on the Tetris menu
+*** Why is it distorted?
+- The correct OAM values are in the OAM region
+- Let's have a look at the tile data to check what's going on
