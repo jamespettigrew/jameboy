@@ -42,9 +42,9 @@ impl Memory {
     }
 
     pub fn read(&self, address: Address) -> u8 {
-        if let DmaState::Active { last_transferred_byte, .. } = self.dma_state {
-            return last_transferred_byte;
-        }
+        // if let DmaState::Active { last_transferred_byte, .. } = self.dma_state {
+        //     return last_transferred_byte;
+        // }
 
         if address.0 == 0xFF44 {
             // Uncomment the following line if testing with gameboy-doctor
@@ -58,7 +58,7 @@ impl Memory {
         }
     }
 
-    pub fn read_range(&self, address: Address, count: u8) -> &[u8] {
+    pub fn read_range(&self, address: Address, count: u16) -> &[u8] {
         let start = usize::from(address.0);
 
         &self.ram[start..start + count as usize]
@@ -79,13 +79,15 @@ impl Memory {
 
     pub fn write(&mut self, address: Address, value: u8) {
         if let DmaState::Active { .. } = self.dma_state {
-            return;
+            if address.0 < 0xFF80 || address.0 > 0xFFFE {
+                return;
+            }
         }
 
         self.ram[usize::from(address.0)] = value;
 
         if address.0 == ADDRESS_DMA {
-            let src_addr = (value as u16) * 100; // Register value is source address / 100
+            let src_addr = u8_to_u16(value, 0x00);
             self.dma_state = DmaState::Active { src_addr, cycles: 0, last_transferred_byte: 0 };
         }
     }
